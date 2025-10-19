@@ -141,10 +141,37 @@ def search_series_info(series_name: str):
     """Search for series information using APIs"""
     results = []
 
+    # Check cache first for the original series name
+    try:
+        cached_info = st.session_state.project_state.get_cached_series_info(series_name)
+        if cached_info:
+            st.success(f"Using cached data for: {series_name}")
+            # Convert cached data to the expected format
+            results.append({
+                "name": cached_info.get("corrected_series_name", series_name),
+                "source": "Vertex AI (Cached)",
+                "authors": [cached_info.get("authors", "")] if cached_info.get("authors") else [],
+                "volume_count": cached_info.get("extant_volumes", 0),
+                "summary": cached_info.get("summary", ""),
+                "cover_url": cached_info.get("cover_image_url", None),
+                "additional_info": {
+                    "genres": [],
+                    "publisher": "",
+                    "status": "",
+                    "alternative_titles": cached_info.get("alternative_titles", []),
+                    "spin_offs": cached_info.get("spinoff_series", []),
+                    "adaptations": []
+                }
+            })
+            return results
+    except Exception as e:
+        st.warning(f"Cache check failed: {e}")
+
     # Try Vertex AI first (most authoritative)
     try:
         vertex_api = VertexAIAPI()
         suggestions = vertex_api.correct_series_name(series_name, st.session_state.project_state)
+        st.info(f"Vertex AI returned {len(suggestions)} suggestions")
         for suggestion in suggestions[:5]:  # Limit to 5 suggestions
             # Get comprehensive series information
             try:
@@ -399,6 +426,8 @@ def display_volume_input():
         # Debug: Show what's actually in the input
         if "Q" in volume_range or "q" in volume_range:
             st.warning(f"Found 'Q' in input: '{volume_range}' - this will be cleaned")
+            # Force clean the input by removing all non-numeric characters except commas and hyphens
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
 
         try:
             volumes = parse_volume_range(volume_range)
