@@ -58,11 +58,11 @@ def display_barcode_input():
 
     st.write("Enter the starting barcode number for your manga collection.")
     st.write("Examples: T000001, 00001234, MANGA005")
-    st.write("**Requirements:** ASCII only, ending in a number")
+    st.write("**Requirements:** Any combination of letters and numbers, ending in a number")
 
     barcode_input = st.text_input(
         "Starting Barcode",
-        value=st.session_state.start_barcode,
+        value="",
         placeholder="e.g., T000001",
         key="barcode_input"
     )
