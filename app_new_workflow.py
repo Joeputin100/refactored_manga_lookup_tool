@@ -24,6 +24,7 @@ import time
 from manga_lookup import (
     DeepSeekAPI,
     GoogleBooksAPI,
+    VertexAIAPI,
     ProjectState,
     generate_sequential_barcodes,
     parse_volume_range,
@@ -140,7 +141,46 @@ def search_series_info(series_name: str):
     """Search for series information using APIs"""
     results = []
 
-    # Try DeepSeek API first
+    # Try Vertex AI first (most authoritative)
+    try:
+        vertex_api = VertexAIAPI()
+        suggestions = vertex_api.correct_series_name(series_name)
+        for suggestion in suggestions[:5]:  # Limit to 5 suggestions
+            # Get comprehensive series information
+            try:
+                series_info = vertex_api.get_comprehensive_series_info(suggestion)
+                results.append({
+                    "name": suggestion,
+                    "source": "Vertex AI",
+                    "authors": series_info.get("authors", []),
+                    "volume_count": series_info.get("number_of_extant_volumes", 0),
+                    "summary": series_info.get("description", ""),
+                    "cover_url": None,  # Vertex AI doesn't provide covers
+                    "additional_info": {
+                        "genres": series_info.get("genres", []),
+                        "publisher": series_info.get("publisher", ""),
+                        "status": series_info.get("status", ""),
+                        "alternative_titles": series_info.get("alternative_titles", []),
+                        "spin_offs": series_info.get("spin_offs", []),
+                        "adaptations": series_info.get("adaptations", [])
+                    }
+                })
+            except Exception as detail_error:
+                # If detailed lookup fails, still add the suggestion
+                results.append({
+                    "name": suggestion,
+                    "source": "Vertex AI",
+                    "authors": [],
+                    "volume_count": 0,
+                    "summary": "",
+                    "cover_url": None,
+                    "additional_info": {}
+                })
+    except Exception as e:
+        # Silently fail for Vertex AI - it's an enhancement
+        pass
+
+    # Try DeepSeek API second
     try:
         deepseek_api = DeepSeekAPI()
         suggestions = deepseek_api.correct_series_name(series_name)
@@ -157,7 +197,15 @@ def search_series_info(series_name: str):
                         "authors": book_data.get("authors", []),
                         "volume_count": book_data.get("number_of_extant_volumes", 0),
                         "summary": book_data.get("description", ""),
-                        "cover_url": None  # Will be fetched separately
+                        "cover_url": None,  # Will be fetched separately
+                        "additional_info": {
+                            "genres": book_data.get("genres", []),
+                            "publisher": book_data.get("publisher_name", ""),
+                            "status": "",
+                            "alternative_titles": [],
+                            "spin_offs": [],
+                            "adaptations": []
+                        }
                     })
                 else:
                     results.append({
@@ -166,7 +214,8 @@ def search_series_info(series_name: str):
                         "authors": [],
                         "volume_count": 0,
                         "summary": "",
-                        "cover_url": None
+                        "cover_url": None,
+                        "additional_info": {}
                     })
             except Exception as detail_error:
                 # If detailed lookup fails, still add the suggestion
@@ -176,7 +225,8 @@ def search_series_info(series_name: str):
                     "authors": [],
                     "volume_count": 0,
                     "summary": "",
-                    "cover_url": None
+                    "cover_url": None,
+                    "additional_info": {}
                 })
     except Exception as e:
         st.error(f"DeepSeek API error: {e}")
@@ -210,7 +260,15 @@ def search_series_info(series_name: str):
                         "authors": authors,
                         "volume_count": 0,  # Google Books doesn't provide series volume count
                         "summary": description,
-                        "cover_url": cover_url
+                        "cover_url": cover_url,
+                        "additional_info": {
+                            "genres": [],
+                            "publisher": "",
+                            "status": "",
+                            "alternative_titles": [],
+                            "spin_offs": [],
+                            "adaptations": []
+                        }
                     })
     except Exception as e:
         # Silently fail for Google Books - it's just an enhancement
@@ -278,12 +336,31 @@ def display_series_search():
 
                 with col2:
                     st.write(f"**{result['name']}**")
+                    st.caption(f"Source: {result['source']}")
+
                     if result["authors"]:
-                        st.write(f"Authors: {', '.join(result['authors'])}")
+                        st.write(f"**Authors:** {', '.join(result['authors'])}")
+
                     if result["volume_count"] > 0:
-                        st.write(f"Volumes: {result['volume_count']}")
+                        st.write(f"**Volumes:** {result['volume_count']}")
+
+                    # Show additional info if available
+                    additional_info = result.get("additional_info", {})
+                    if additional_info.get("genres"):
+                        st.write(f"**Genres:** {', '.join(additional_info['genres'])}")
+
+                    if additional_info.get("publisher"):
+                        st.write(f"**Publisher:** {additional_info['publisher']}")
+
+                    if additional_info.get("status"):
+                        st.write(f"**Status:** {additional_info['status']}")
+
+                    if additional_info.get("alternative_titles"):
+                        st.write(f"**Also known as:** {', '.join(additional_info['alternative_titles'])}")
+
                     if result["summary"]:
-                        st.write(f"Summary: {result['summary']}")
+                        st.write(f"**Summary:** {result['summary']}")
+
                     st.caption("Note: Covers may appear differently in different editions, printings, and languages.")
 
                     if st.button("Select This Series", key=f"select_{i}"):

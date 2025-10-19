@@ -774,6 +774,162 @@ def generate_sequential_barcodes(start_barcode: str, count: int) -> list[str]:
     return barcodes
 
 
+class VertexAIAPI:
+    """Handles Google Vertex AI API interactions for comprehensive manga data"""
+
+    def __init__(self):
+        self.project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        self.location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        self.model_name = os.getenv("VERTEX_AI_MODEL", "gemini-1.5-flash")
+
+        # Check if required environment variables are set
+        if not self.project_id:
+            raise ValueError(
+                "GOOGLE_CLOUD_PROJECT environment variable is required for Vertex AI"
+            )
+
+    def _call_vertex_ai(self, prompt: str) -> str:
+        """Make a call to Vertex AI API"""
+        try:
+            # Import Vertex AI (this would require google-cloud-aiplatform)
+            from google.cloud import aiplatform
+
+            # Initialize Vertex AI
+            aiplatform.init(project=self.project_id, location=self.location)
+
+            # Create the model
+            model = aiplatform.GenerativeModel(self.model_name)
+
+            # Generate response
+            response = model.generate_content(prompt)
+            return response.text
+
+        except ImportError:
+            raise ImportError(
+                "google-cloud-aiplatform is required for Vertex AI. "
+                "Install with: pip install google-cloud-aiplatform"
+            )
+        except Exception as e:
+            raise Exception(f"Vertex AI API error: {e}")
+
+    def get_comprehensive_series_info(self, series_name: str) -> dict:
+        """Get comprehensive series information using Vertex AI"""
+        prompt = f"""
+        Please provide comprehensive information about the manga series "{series_name}" in JSON format.
+        Include the following fields:
+        - series_name: The official title
+        - authors: List of authors/artists
+        - number_of_extant_volumes: Total number of volumes published
+        - description: Detailed plot summary
+        - genres: List of genres
+        - publisher: Main publisher
+        - original_release_year: Year the series started
+        - status: Current status (ongoing, completed, hiatus, etc.)
+        - alternative_titles: Any alternative or English titles
+        - spin_offs: List of related spin-off series
+        - adaptations: Any anime, live-action, or other adaptations
+        - notable_characters: Main characters
+        - themes: Major themes explored
+        - awards: Any awards or recognitions
+
+        Please provide accurate, up-to-date information.
+        """
+
+        try:
+            response_text = self._call_vertex_ai(prompt)
+
+            # Parse the JSON response
+            import json
+            data = json.loads(response_text)
+
+            return {
+                "series_name": data.get("series_name", series_name),
+                "authors": data.get("authors", []),
+                "number_of_extant_volumes": data.get("number_of_extant_volumes", 0),
+                "description": data.get("description", ""),
+                "genres": data.get("genres", []),
+                "publisher": data.get("publisher", ""),
+                "original_release_year": data.get("original_release_year"),
+                "status": data.get("status", ""),
+                "alternative_titles": data.get("alternative_titles", []),
+                "spin_offs": data.get("spin_offs", []),
+                "adaptations": data.get("adaptations", []),
+                "notable_characters": data.get("notable_characters", []),
+                "themes": data.get("themes", []),
+                "awards": data.get("awards", [])
+            }
+
+        except Exception as e:
+            # If Vertex AI fails, return minimal data
+            return {
+                "series_name": series_name,
+                "authors": [],
+                "number_of_extant_volumes": 0,
+                "description": "",
+                "genres": [],
+                "publisher": "",
+                "original_release_year": None,
+                "status": "",
+                "alternative_titles": [],
+                "spin_offs": [],
+                "adaptations": [],
+                "notable_characters": [],
+                "themes": [],
+                "awards": []
+            }
+
+    def get_book_info(
+        self, series_name: str, volume_number: int, project_state: ProjectState | None = None
+    ) -> dict | None:
+        """Get detailed information for a specific volume"""
+        # Get comprehensive series info first
+        series_info = self.get_comprehensive_series_info(series_name)
+
+        # Create volume-specific info
+        volume_info = {
+            "series_name": series_info["series_name"],
+            "volume_number": volume_number,
+            "book_title": f"{series_info['series_name']} Volume {volume_number}",
+            "authors": series_info["authors"],
+            "number_of_extant_volumes": series_info["number_of_extant_volumes"],
+            "description": series_info["description"],
+            "genres": series_info["genres"],
+            "publisher_name": series_info["publisher"],
+            "copyright_year": series_info["original_release_year"],
+            "warnings": []
+        }
+
+        return volume_info
+
+    def correct_series_name(self, series_name: str) -> list[str]:
+        """Get corrected/suggested series names using Vertex AI"""
+        prompt = f"""
+        Given the manga series name "{series_name}", provide a list of possible correct or alternative names.
+        Include:
+        1. The most likely correct official title
+        2. Any common alternative titles or translations
+        3. Any spin-off series that might be confused with the main series
+        4. Different editions (omnibus, collector's edition, etc.)
+
+        Return only a JSON list of strings, no additional text.
+        """
+
+        try:
+            response_text = self._call_vertex_ai(prompt)
+            import json
+            suggestions = json.loads(response_text)
+
+            # Ensure we have at least the original name
+            if series_name not in suggestions:
+                suggestions.insert(0, series_name)
+
+            return suggestions[:10]  # Limit to 10 suggestions
+
+        except Exception:
+            # If Vertex AI fails, return just the original name
+            return [series_name]
+
+
 def process_book_data(
     raw_data: dict,
     volume_number: int,
