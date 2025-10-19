@@ -283,3 +283,399 @@ class DataValidator:
             DataValidator.format_author_name(author) for author in authors
         ]
         return ", ".join(formatted_authors)
+
+
+class DeepSeekAPI:
+    """Handles DeepSeek API interactions with rate limiting and error handling"""
+
+    def __init__(self):
+        self.api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not self.api_key:
+            msg = "DEEPSEEK_API_KEY not found in environment variables"
+            raise ValueError(msg)
+
+        self.base_url = "https://api.deepseek.com/v1/chat/completions"
+        self.model = "deepseek-chat"  # Using DeepSeek-V3.2-Exp (non-thinking mode)
+        self.last_request_time = time.time()
+
+    def correct_series_name(self, series_name: str) -> list[str]:
+        """Use DeepSeek API to correct and suggest manga series names"""
+        prompt = f"""
+        Given the manga series name "{series_name}", provide 3-5 corrected or alternative names
+        that are actual manga series or editions.
+        that are actual manga series.
+
+        IMPORTANT: If "{series_name}" is already a correct manga series name, include it as the first suggestion.
+        If "{series_name}" is a valid manga series, prioritize it over other suggestions.
+        For popular series with multiple editions, include different formats:
+        - Regular edition (individual volumes)
+        - Omnibus edition (3 volumes per book)
+        - Colossal edition (5 volumes per book)
+        Format edition names as "Series Name (Edition Type)"
+
+        Only include actual manga series names, not unrelated popular series.
+        If "{series_name}" is misspelled or incomplete, provide the correct full name first.
+
+        Prioritize the main series over spinoffs, sequels, or adaptations.
+        If the series has multiple parts (like Tokyo Ghoul and Tokyo Ghoul:re), include the main series first.
+        Include recent and ongoing series, not just completed ones.
+
+        Return only the names as a JSON list, no additional text.
+
+        Example format: ["Attack on Titan (Regular Edition)", "Attack on Titan (Omnibus Edition)", "Attack on Titan (Colossal Edition)", "One Piece", "Naruto"]
+        """
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 200,
+            "temperature": 0.3,
+        }
+
+        content = None  # Initialize content variable
+
+        try:
+            response = requests.post(
+                self.base_url,
+                headers=headers,
+                json=payload,
+                timeout=60,
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+
+            # Debug logging
+
+            # Parse JSON response
+            suggestions = json.loads(content)
+
+            # Filter out any None values from suggestions
+            suggestions = [s for s in suggestions if s is not None]
+
+            # Debug logging
+
+            # Ensure the original series name is included if it's valid
+            # Check if the original name is in the suggestions, if not add it
+            if series_name not in suggestions:
+                # Check if any suggestion contains the original name (case-insensitive)
+                original_in_suggestions = any(
+                    suggestion and series_name.lower() in suggestion.lower()
+                    for suggestion in suggestions
+                )
+                if not original_in_suggestions:
+                    # Add original name as first suggestion
+                    suggestions.insert(0, series_name)
+
+        except OSError as e:
+            rprint(f"[red]Error using DeepSeek API: {e}[/red]")
+            return [series_name]  # Fallback to original name
+        else:
+            return suggestions
+
+    def get_book_info(
+        self,
+        series_name: str,
+        volume_number: int,
+        project_state: ProjectState,
+    ) -> dict | None:
+        """Get comprehensive book information using DeepSeek API"""
+
+        # Create comprehensive prompt
+        prompt = self._create_comprehensive_prompt(series_name, volume_number)
+
+        # Check cache first
+        cached_response = project_state.get_cached_response(prompt, volume_number)
+        if cached_response:
+            rprint(f"[cyan]📚 Using cached data for volume {volume_number}[/cyan]")
+            try:
+                return json.loads(cached_response)
+            except json.JSONDecodeError:
+                rprint("[yellow]⚠️ Cached data corrupted, fetching fresh data[/yellow]")
+
+        # If we get here, we need to make a new API call
+        rprint(f"[blue]🔍 Making API call for volume {volume_number}[/blue]")
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 1000,
+            "temperature": 0.1,
+        }
+
+        try:
+            response = requests.post(
+                self.base_url,
+                headers=headers,
+                json=payload,
+                timeout=120,
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+            # Parse JSON response
+            content = content.strip()
+            content = content.removeprefix("```json")
+            content = content.removesuffix("```")
+            content = content.strip()
+            try:
+                book_data = json.loads(content)
+            except json.JSONDecodeError as e:
+                rprint(
+                    f"[red]Invalid JSON response for volume {volume_number}: {e}[/red]",
+                )
+                rprint(f"[red]Content: {content[:500]}[/red]")
+                project_state.record_api_call(
+                    prompt,
+                    content,
+                    volume_number,
+                    success=False,
+                )
+            if not book_data.get("number_of_extant_volumes"):
+                google_api = GoogleBooksAPI()
+                book_data["number_of_extant_volumes"] = google_api.get_total_volumes(
+                    series_name,
+                )
+                return None
+
+            # Record successful API call
+            project_state.record_api_call(prompt, content, volume_number, success=True)
+
+        except requests.exceptions.HTTPError as e:
+            if e.response and e.response.status_code == HTTP_STATUS_TOO_MANY_REQUESTS:
+                rprint(
+                    f"[yellow]Rate limit exceeded for volume {volume_number}, waiting 5 seconds...[/yellow]",
+                )
+                time.sleep(5)
+                return self.get_book_info(series_name, volume_number, project_state)
+            rprint(f"[red]HTTP error for volume {volume_number}: {e}[/red]")
+        except OSError as e:
+            rprint(f"[red]Error fetching data for volume {volume_number}: {e}[/red]")
+            return None
+        else:
+            return book_data
+
+    def _create_comprehensive_prompt(self, series_name: str, volume_number: int) -> str:
+        """Create comprehensive prompt for book information"""
+        return f"""
+        Provide comprehensive information for the manga "{series_name}" Volume {volume_number}.
+
+        Return a JSON object with these exact fields:
+        - "series_name": The official series name
+        - "book_title": The specific title for this volume (e.g., "Volume 1: The Beginning")
+        - "authors": List of author names (e.g., ["Eiichiro Oda", "Masashi Kishimoto"])
+        - "msrp_cost": The retail price in USD (e.g., 9.99)
+        - "isbn_13": The 13-digit ISBN (e.g., "9781421502670")
+        - "publisher_name": The publisher (e.g., "VIZ Media", "Kodansha Comics")
+        - "copyright_year": The copyright year (e.g., 2003)
+        - "description": A brief description of the volume's content
+        - "physical_description": Physical details like pages, dimensions (e.g., "192 pages, 5 x 7.5 inches")
+        - "genres": List of genres (e.g., ["Action", "Adventure", "Fantasy"])
+        - "number_of_extant_volumes": Total number of volumes in the series
+        - "cover_image_url": URL to the cover image if available
+
+        Important:
+        - Return ONLY valid JSON, no additional text
+        - Use exact field names as specified
+        - If information is unavailable, use null or empty values
+        - Prioritize English edition information
+        - For manga, typical MSRP is $9.99-$12.99 for standard volumes
+        """
+
+
+class GoogleBooksAPI:
+    """Handles Google Books API interactions for cover image retrieval using keyless queries"""
+
+    def __init__(self):
+        self.base_url = "https://www.googleapis.com/books/v1/volumes"
+
+    def _select_cover_image(self, image_links: dict) -> str | None:
+        """Select the best available cover image from Google Books image links."""
+        for size in ["smallThumbnail", "thumbnail", "small", "medium", "large", "extraLarge"]:
+            if size in image_links:
+                return image_links[size]
+        return None
+
+    def get_cover_image_url(
+        self,
+        isbn: str,
+        project_state: ProjectState | None = None,
+    ) -> str | None:
+        """Get cover image URL for a book by ISBN using keyless Google Books API"""
+        if not isbn:
+            return None
+
+        # Check cache first if project_state is provided
+        if project_state:
+            cached_url = project_state.get_cached_cover_image(f"isbn:{isbn}")
+            if cached_url:
+                return cached_url
+
+        # Construct the keyless API URL
+        url = f"{self.base_url}?q=isbn:{isbn}&maxResults=1"
+
+        try:
+            # Make the keyless HTTP request
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("totalItems", 0) == 0:
+                return None
+
+            volume_info = data["items"][0]["volumeInfo"]
+            image_links = volume_info.get("imageLinks", {})
+
+            # Get the small thumbnail cover image URL
+            cover_url = image_links.get("smallThumbnail")
+
+            # If small thumbnail not available, try other sizes
+            if not cover_url:
+                for size in ["thumbnail", "small", "medium", "large", "extraLarge"]:
+                    if size in image_links:
+                        cover_url = image_links[size]
+                        break
+
+            if cover_url:
+                # Cache the result
+                if project_state:
+                    project_state.cache_cover_image(f"isbn:{isbn}", cover_url)
+            else:
+                pass
+
+        except requests.exceptions.RequestException:
+            # Silently fail - cover images are optional
+            return None
+        except OSError:
+            return None
+        else:
+            return cover_url
+
+    def get_total_volumes(self, series_name: str) -> int:
+        """Get the total number of volumes in a manga series using Google Books API"""
+        query = f'intitle:"{series_name}" manga'
+        url = f"{self.base_url}?q={query}&maxResults=40&orderBy=relevance"
+
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("totalItems", 0) == 0:
+                return 0
+
+            # Extract volume numbers from titles
+            volume_numbers = []
+            for item in data.get("items", []):
+                title = item["volumeInfo"].get("title", "").lower()
+                # Look for volume patterns
+
+                match = re.search(r"volume (\d+)", title)
+                if match:
+                    volume_numbers.append(int(match.group(1)))
+
+            return max(volume_numbers) if volume_numbers else 0
+
+        except OSError:
+            return 0
+
+
+class VertexAIClient:
+    """Handles Vertex AI API interactions for manga data"""
+
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
+            msg = "GEMINI_API_KEY not found in environment variables"
+            raise ValueError(msg)
+
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+
+    def correct_series_name(self, series_name: str) -> list[str]:
+        """Use Vertex AI API to correct and suggest manga series names"""
+        prompt = f"""
+        Given the manga series name "{series_name}", provide 3-5 corrected or alternative names
+        that are actual manga series or editions.
+
+        IMPORTANT: If "{series_name}" is already a correct manga series name, include it as the first suggestion.
+        If "{series_name}" is a valid manga series, prioritize it over other suggestions.
+        For popular series with multiple editions, include different formats:
+        - Regular edition (individual volumes)
+        - Omnibus edition (3 volumes per book)
+        - Colossal edition (5 volumes per book)
+        Format edition names as "Series Name (Edition Type)"
+
+        Only include actual manga series names, not unrelated popular series.
+        If "{series_name}" is misspelled or incomplete, provide the correct full name first.
+
+        Prioritize the main series over spinoffs, sequels, or adaptations.
+        If the series has multiple parts (like Tokyo Ghoul and Tokyo Ghoul:re), include the main series first.
+        Include recent and ongoing series, not just completed ones.
+
+        Return only the names as a JSON list, no additional text.
+
+        Example format: ["Attack on Titan (Regular Edition)", "Attack on Titan (Omnibus Edition)", "Attack on Titan (Colossal Edition)", "One Piece", "Naruto"]
+        """
+
+        headers = {
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "contents": [{
+                "parts": [{
+                    "text": prompt
+                }]
+            }],
+            "generationConfig": {
+                "temperature": 0.3,
+                "maxOutputTokens": 200,
+            }
+        }
+
+        url = f"{self.base_url}?key={self.api_key}"
+
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=60,
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            content = result["candidates"][0]["content"]["parts"][0]["text"]
+
+            # Parse JSON response
+            suggestions = json.loads(content)
+
+            # Filter out any None values from suggestions
+            suggestions = [s for s in suggestions if s is not None]
+
+            # Ensure the original series name is included if it's valid
+            if series_name not in suggestions:
+                original_in_suggestions = any(
+                    suggestion and series_name.lower() in suggestion.lower()
+                    for suggestion in suggestions
+                )
+                if not original_in_suggestions:
+                    suggestions.insert(0, series_name)
+
+        except OSError as e:
+            rprint(f"[red]Error using Vertex AI API: {e}[/red]")
+            return [series_name]  # Fallback to original name
+        else:
+            return suggestions
