@@ -401,10 +401,6 @@ def display_volume_input():
             if not volumes:
                 st.error("Invalid volume range format")
                 return
-        except ValueError as e:
-            st.error(f"Error parsing volume range: {e}")
-            st.info("Valid formats: '1-10', '1,3,5,7', '1-5,8,10', or '17-18-19' for omnibus")
-            return
 
             current_series["volume_range"] = volume_range
             current_series["volumes"] = volumes
@@ -421,8 +417,11 @@ def display_volume_input():
             st.session_state.workflow_step = "series_confirmation"
             st.rerun()
 
-        except Exception as e:
+        except ValueError as e:
             st.error(f"Error parsing volume range: {e}")
+            st.info("Valid formats: '1-10', '1,3,5,7', '1-5,8,10', or '17-18-19' for omnibus")
+        except Exception as e:
+            st.error(f"Unexpected error: {e}")
 
 
 def display_series_confirmation():
