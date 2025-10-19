@@ -231,6 +231,32 @@ class ProjectState:
         )
         self.conn.commit()
 
+    def find_similar_series(self, series_name: str) -> list[str]:
+        """Find similar series names from API call history"""
+        cursor = self.conn.cursor()
+
+        # Search for series names in API calls
+        cursor.execute("""
+            SELECT DISTINCT json_extract(response, '$.series_name') as series
+            FROM api_calls
+            WHERE json_extract(response, '$.series_name') IS NOT NULL
+            AND json_extract(response, '$.series_name') != ''
+            ORDER BY timestamp DESC
+            LIMIT 20
+        """)
+
+        all_series = [row[0] for row in cursor.fetchall() if row[0]]
+
+        # Simple similarity matching - series that contain the input name
+        similar_series = []
+        for existing_series in all_series:
+            if (series_name.lower() in existing_series.lower() or
+                existing_series.lower() in series_name.lower()):
+                similar_series.append(existing_series)
+
+        # Remove duplicates and limit results
+        return list(dict.fromkeys(similar_series))[:5]
+
 
 class DataValidator:
     """Handles data validation and formatting"""
