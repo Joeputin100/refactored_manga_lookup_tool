@@ -22,11 +22,14 @@ import time
 # Import existing core logic
 from manga_lookup import (
     DeepSeekAPI,
+    GoogleBooksAPI,
     ProjectState,
     generate_sequential_barcodes,
     parse_volume_range,
 )
 from marc_exporter import export_books_to_marc
+from mal_cover_fetcher import MALCoverFetcher
+from mangadex_cover_fetcher import MangaDexCoverFetcher
 
 
 def initialize_session_state():
@@ -141,25 +144,75 @@ def search_series_info(series_name: str):
         deepseek_api = DeepSeekAPI()
         suggestions = deepseek_api.correct_series_name(series_name)
         for suggestion in suggestions[:5]:  # Limit to 5 suggestions
-            results.append({
-                "name": suggestion,
-                "source": "DeepSeek",
-                "authors": [],
-                "volume_count": 0,
-                "summary": "",
-                "cover_url": None
-            })
+            # Get detailed series information
+            try:
+                book_data = deepseek_api.get_book_info(
+                    suggestion, 1, st.session_state.project_state
+                )
+                if book_data:
+                    results.append({
+                        "name": suggestion,
+                        "source": "DeepSeek",
+                        "authors": book_data.get("authors", []),
+                        "volume_count": book_data.get("number_of_extant_volumes", 0),
+                        "summary": book_data.get("description", ""),
+                        "cover_url": None  # Will be fetched separately
+                    })
+                else:
+                    results.append({
+                        "name": suggestion,
+                        "source": "DeepSeek",
+                        "authors": [],
+                        "volume_count": 0,
+                        "summary": "",
+                        "cover_url": None
+                    })
+            except Exception as detail_error:
+                # If detailed lookup fails, still add the suggestion
+                results.append({
+                    "name": suggestion,
+                    "source": "DeepSeek",
+                    "authors": [],
+                    "volume_count": 0,
+                    "summary": "",
+                    "cover_url": None
+                })
     except Exception as e:
         st.error(f"DeepSeek API error: {e}")
 
-    # Try Google Books for additional info
-    try:
-        # Add Google Books results
-        pass
-    except Exception as e:
-        st.error(f"Google Books API error: {e}")
+    # Try Google Books for cover images (we'll use it later for cover fetching)
+    # Google Books API doesn't have a direct series search method
+    pass
+
+    # Fetch cover images for all results
+    for result in results:
+        if not result["cover_url"]:
+            result["cover_url"] = fetch_cover_for_series(result["name"])
 
     return results
+
+
+def fetch_cover_for_series(series_name: str) -> str | None:
+    """Fetch cover image URL for a series"""
+    # Try MAL first
+    try:
+        mal_fetcher = MALCoverFetcher()
+        cover_url = mal_fetcher.fetch_cover(series_name, 1)
+        if cover_url:
+            return cover_url
+    except Exception:
+        pass
+
+    # Try MangaDex
+    try:
+        mangadex_fetcher = MangaDexCoverFetcher()
+        cover_url = mangadex_fetcher.fetch_cover(series_name, 1)
+        if cover_url:
+            return cover_url
+    except Exception:
+        pass
+
+    return None
 
 
 def display_series_search():
