@@ -144,11 +144,11 @@ def search_series_info(series_name: str):
     # Try Vertex AI first (most authoritative)
     try:
         vertex_api = VertexAIAPI()
-        suggestions = vertex_api.correct_series_name(series_name)
+        suggestions = vertex_api.correct_series_name(series_name, st.session_state.project_state)
         for suggestion in suggestions[:5]:  # Limit to 5 suggestions
             # Get comprehensive series information
             try:
-                series_info = vertex_api.get_comprehensive_series_info(suggestion)
+                series_info = vertex_api.get_comprehensive_series_info(suggestion, st.session_state.project_state)
                 results.append({
                     "name": suggestion,
                     "source": "Vertex AI",
@@ -395,6 +395,10 @@ def display_volume_input():
         if not volume_range:
             st.error("Please enter a volume range")
             return
+
+        # Debug: Show what's actually in the input
+        if "Q" in volume_range or "q" in volume_range:
+            st.warning(f"Found 'Q' in input: '{volume_range}' - this will be cleaned")
 
         try:
             volumes = parse_volume_range(volume_range)

@@ -105,6 +105,17 @@ class ProjectState:
         """,
         )
 
+        # Cached series information table
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cached_series_info (
+                series_name TEXT PRIMARY KEY,
+                series_info TEXT,
+                timestamp TEXT
+            )
+        """,
+        )
+
         # Cached cover images
         cursor.execute(
             """
@@ -256,6 +267,30 @@ class ProjectState:
 
         # Remove duplicates and limit results
         return list(dict.fromkeys(similar_series))[:5]
+
+    def cache_series_info(self, series_name: str, series_info: dict) -> None:
+        """Cache series information for faster lookups"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO cached_series_info
+            (series_name, series_info, timestamp)
+            VALUES (?, ?, ?)
+        """, (series_name, json.dumps(series_info), datetime.now(UTC).isoformat()))
+        self.conn.commit()
+
+    def get_cached_series_info(self, series_name: str) -> dict | None:
+        """Get cached series information if available and recent"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT series_info FROM cached_series_info
+            WHERE series_name = ?
+            AND timestamp > datetime('now', '-7 days')
+        """, (series_name,))
+
+        result = cursor.fetchone()
+        if result:
+            return json.loads(result[0])
+        return None
 
 
 class DataValidator:
@@ -833,17 +868,24 @@ class VertexAIAPI:
         except Exception as e:
             raise ValueError(f"Error loading Vertex AI config from secrets.toml: {e}")
 
-    def get_comprehensive_series_info(self, series_name: str) -> dict:
+    def get_comprehensive_series_info(self, series_name: str, project_state: ProjectState | None = None) -> dict:
         """
         Calls the Gemini model on Vertex AI with Google Search grounding
         and structured JSON output to retrieve manga series details.
 
         Args:
             series_name: The name of the manga series to research.
+            project_state: Optional project state for caching.
 
         Returns:
             A dictionary containing the structured manga series information.
         """
+        # Check cache first if project_state is provided
+        if project_state:
+            cached_info = project_state.get_cached_series_info(series_name)
+            if cached_info:
+                return cached_info
+
         # Initialize Vertex AI
         aiplatform.init(project=self.project_id, location=self.location)
 
@@ -855,15 +897,28 @@ class VertexAIAPI:
                 "grounded research on the given manga series name and return "
                 "the complete, accurate information in the requested JSON schema. "
                 "Ensure the output strictly adheres to the schema. "
-                "Use the Google Search tool for grounded, up-to-date facts."
+                "Use the Google Search tool for grounded, up-to-date facts. "
+                "Be especially thorough about including ALL spinoff series, "
+                "prequels, sequels, and related works."
             )
         )
 
         # Enable the Google Search Grounding Tool
         google_search_tool = Tool.from_google_search()
 
-        # Define the request prompt
-        prompt = f"Perform grounded research on the manga series '{series_name}' and provide the information required in the JSON schema."
+        # Define the request prompt with explicit instructions for spinoffs
+        prompt = f"""
+        Perform comprehensive grounded research on the manga series '{series_name}'.
+
+        IMPORTANT: Include ALL spinoff series, prequels, sequels, and related works.
+        For example, for "Attack on Titan" this should include:
+        - "Attack on Titan: No Regrets"
+        - "Attack on Titan: Before the Fall"
+        - "Attack on Titan: Lost Girls"
+        - Any other related manga series
+
+        Provide the complete information in the requested JSON schema.
+        """
 
         # Define the generation configuration for structured JSON output
         generation_config = {
@@ -881,6 +936,10 @@ class VertexAIAPI:
 
             # The response text is a JSON string conforming to the MangaSeriesInfo schema
             manga_data = json.loads(response.text)
+
+            # Cache the result if project_state is provided
+            if project_state:
+                project_state.cache_series_info(series_name, manga_data)
 
             return manga_data
 
@@ -902,7 +961,7 @@ class VertexAIAPI:
     ) -> dict | None:
         """Get detailed information for a specific volume"""
         # Get comprehensive series info first
-        series_info = self.get_comprehensive_series_info(series_name)
+        series_info = self.get_comprehensive_series_info(series_name, project_state)
 
         # Create volume-specific info
         volume_info = {
@@ -920,10 +979,10 @@ class VertexAIAPI:
 
         return volume_info
 
-    def correct_series_name(self, series_name: str) -> list[str]:
+    def correct_series_name(self, series_name: str, project_state: ProjectState | None = None) -> list[str]:
         """Get corrected/suggested series names using Vertex AI"""
         # For this implementation, we'll use the comprehensive info to get the corrected name
-        series_info = self.get_comprehensive_series_info(series_name)
+        series_info = self.get_comprehensive_series_info(series_name, project_state)
 
         corrected_name = series_info["corrected_series_name"]
         suggestions = [corrected_name]
