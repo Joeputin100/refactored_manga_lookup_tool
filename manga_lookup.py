@@ -279,12 +279,11 @@ class ProjectState:
         self.conn.commit()
 
     def get_cached_series_info(self, series_name: str) -> dict | None:
-        """Get cached series information if available and recent"""
+        """Get cached series information if available (permanent cache)"""
         cursor = self.conn.cursor()
         cursor.execute("""
             SELECT series_info FROM cached_series_info
             WHERE series_name = ?
-            AND timestamp > datetime('now', '-7 days')
         """, (series_name,))
 
         result = cursor.fetchone()
