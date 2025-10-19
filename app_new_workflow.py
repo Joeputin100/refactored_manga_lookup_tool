@@ -11,6 +11,7 @@ Redesigned workflow with step-by-step process:
 """
 
 import sys
+import requests
 
 try:
     import streamlit as st
@@ -180,9 +181,40 @@ def search_series_info(series_name: str):
     except Exception as e:
         st.error(f"DeepSeek API error: {e}")
 
-    # Try Google Books for cover images (we'll use it later for cover fetching)
-    # Google Books API doesn't have a direct series search method
-    pass
+    # Try Google Books for additional series information
+    try:
+        google_api = GoogleBooksAPI()
+        # Search for volume 1 of the series to get better metadata
+        search_query = f"{series_name} 1"
+        url = f"{google_api.base_url}?q={search_query}&maxResults=5"
+
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get("totalItems", 0) > 0:
+            for item in data["items"][:3]:  # Limit to 3 results
+                volume_info = item["volumeInfo"]
+                title = volume_info.get("title", "")
+
+                # Only add if it looks like a volume 1
+                if "1" in title or "one" in title.lower() or "first" in title.lower():
+                    authors = volume_info.get("authors", [])
+                    description = volume_info.get("description", "")
+                    image_links = volume_info.get("imageLinks", {})
+                    cover_url = google_api._select_cover_image(image_links)
+
+                    results.append({
+                        "name": f"{series_name} (Google Books)",
+                        "source": "Google Books",
+                        "authors": authors,
+                        "volume_count": 0,  # Google Books doesn't provide series volume count
+                        "summary": description,
+                        "cover_url": cover_url
+                    })
+    except Exception as e:
+        # Silently fail for Google Books - it's just an enhancement
+        pass
 
     # Fetch cover images for all results
     for result in results:
@@ -251,7 +283,8 @@ def display_series_search():
                     if result["volume_count"] > 0:
                         st.write(f"Volumes: {result['volume_count']}")
                     if result["summary"]:
-                        st.write(f"Summary: {result['summary'][:100]}...")
+                        st.write(f"Summary: {result['summary']}")
+                    st.caption("Note: Covers may appear differently in different editions, printings, and languages.")
 
                     if st.button("Select This Series", key=f"select_{i}"):
                         current_series["selected_series"] = result["name"]
