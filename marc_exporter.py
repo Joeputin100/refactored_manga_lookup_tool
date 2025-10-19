@@ -11,13 +11,15 @@ from datetime import datetime
 from pymarc import Field, Record
 
 
-def export_books_to_marc(books: list, output_path: str) -> None:
+def export_books_to_marc(books: list) -> bytes:
     """
     Export a list of BookInfo objects to MARC21 format.
 
     Args:
         books: List of BookInfo objects
-        output_path: Path to save the MARC file
+
+    Returns:
+        MARC data as bytes
     """
     records = []
 
@@ -26,10 +28,12 @@ def export_books_to_marc(books: list, output_path: str) -> None:
         if record:
             records.append(record)
 
-    # Write records to file
-    with open(output_path, 'wb') as f:
-        for record in records:
-            f.write(record.as_marc())
+    # Combine all records into a single byte stream
+    marc_data = b""
+    for record in records:
+        marc_data += record.as_marc()
+
+    return marc_data
 
 
 def create_marc_record(book) -> Record | None:

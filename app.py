@@ -359,11 +359,11 @@ def display_results():
     with col1:
         if st.button("Export to MARC"):
             try:
-                export_books_to_marc(st.session_state.all_books, "manga_export.mrc")
+                marc_data = export_books_to_marc(st.session_state.all_books)
                 st.success("MARC file exported successfully!")
                 st.download_button(
                     "Download MARC File",
-                    data=open("manga_export.mrc", "rb").read(),
+                    data=marc_data,
                     file_name="manga_export.mrc",
                     mime="application/marc",
                 )
