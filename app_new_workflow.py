@@ -18,20 +18,14 @@ except ImportError:
     sys.exit(1)
 
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import existing core logic
 from manga_lookup import (
-    BookInfo,
     DeepSeekAPI,
-    GoogleBooksAPI,
     ProjectState,
     generate_sequential_barcodes,
     parse_volume_range,
-    process_book_data,
 )
-from mangadex_cover_fetcher import MangaDexCoverFetcher
-from mal_cover_fetcher import MALCoverFetcher
 from marc_exporter import export_books_to_marc
 
 
@@ -96,7 +90,9 @@ def display_barcode_confirmation():
 
     # Show first 3 barcodes in sequence
     try:
-        barcodes = generate_sequential_barcodes(st.session_state.start_barcode, 3)
+        barcodes = generate_sequential_barcodes(
+            st.session_state.start_barcode, 3
+        )
         st.write("**First 3 barcodes in sequence:**")
         for i, barcode in enumerate(barcodes, 1):
             st.write(f"{i}. {barcode}")
@@ -158,7 +154,6 @@ def search_series_info(series_name: str):
 
     # Try Google Books for additional info
     try:
-        google_api = GoogleBooksAPI()
         # Add Google Books results
         pass
     except Exception as e:
@@ -169,14 +164,18 @@ def search_series_info(series_name: str):
 
 def display_series_search():
     """Step 3: Series search and selection"""
-    current_series = st.session_state.series_entries[st.session_state.current_series_index]
+    current_series = st.session_state.series_entries[
+        st.session_state.current_series_index
+    ]
 
     st.header(f"Step 3: Confirm Series - {current_series['name']}")
 
     # Show search results if not already searched
     if not current_series["search_results"]:
         with st.spinner("Searching for series information..."):
-            current_series["search_results"] = search_series_info(current_series["name"])
+            current_series["search_results"] = search_series_info(
+                current_series["name"]
+            )
 
     # Display search results as cards
     if current_series["search_results"]:
@@ -201,7 +200,7 @@ def display_series_search():
                     if result["summary"]:
                         st.write(f"Summary: {result['summary'][:100]}...")
 
-                    if st.button(f"Select This Series", key=f"select_{i}"):
+                    if st.button("Select This Series", key=f"select_{i}"):
                         current_series["selected_series"] = result["name"]
                         st.session_state.workflow_step = "volume_input"
                         st.rerun()
