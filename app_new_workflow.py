@@ -99,8 +99,8 @@ def display_barcode_confirmation():
             st.session_state.start_barcode, 3
         )
         st.write("**First 3 barcodes in sequence:**")
-        for i, barcode in enumerate(barcodes, 1):
-            st.write(f"{i}. {barcode}")
+        barcode_list = ", ".join(barcodes)
+        st.markdown(f"*{barcode_list}*")
     except Exception as e:
         st.error(f"Error generating barcodes: {e}")
         if st.button("Go Back"):
