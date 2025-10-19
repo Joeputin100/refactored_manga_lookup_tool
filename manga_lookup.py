@@ -711,8 +711,17 @@ def parse_volume_range(volume_input: str) -> list[int]:
     """Parse volume range input like '1-5,7,10' and omnibus formats like '17-18-19' into list of volume numbers"""
     volumes = []
 
+    # Clean the input - remove any non-numeric characters except commas and hyphens
+    cleaned_input = "".join(c for c in volume_input if c.isdigit() or c in "-,")
+
+    if not cleaned_input:
+        raise ValueError("Volume range must contain numbers")
+
     # Split by commas
-    parts = [part.strip() for part in volume_input.split(",")]
+    parts = [part.strip() for part in cleaned_input.split(",") if part.strip()]
+
+    if not parts:
+        raise ValueError("No valid volume ranges found")
 
     for part in parts:
         if "-" in part:
@@ -723,9 +732,11 @@ def parse_volume_range(volume_input: str) -> list[int]:
                 # Handle range like '1-5' (single range)
                 try:
                     start, end = map(int, part.split("-"))
+                    if start > end:
+                        raise ValueError(f"Range start ({start}) cannot be greater than end ({end})")
                     volumes.extend(range(start, end + 1))
                 except ValueError as e:
-                    msg = f"Invalid volume range format: {part}"
+                    msg = f"Invalid volume range format: '{part}' - {e}"
                     raise ValueError(msg) from e
             else:
                 # Handle omnibus format like '17-18-19' (multiple volumes in one book)
@@ -734,14 +745,14 @@ def parse_volume_range(volume_input: str) -> list[int]:
                     omnibus_volumes = list(map(int, part.split("-")))
                     volumes.extend(omnibus_volumes)
                 except ValueError as e:
-                    msg = f"Invalid omnibus format: {part}"
+                    msg = f"Invalid omnibus format: '{part}' - {e}"
                     raise ValueError(msg) from e
         else:
             # Handle single volume like '7'
             try:
                 volumes.append(int(part))
             except ValueError as e:
-                msg = f"Invalid volume number: {part}"
+                msg = f"Invalid volume number: '{part}' - {e}"
                 raise ValueError(msg) from e
 
     # Remove duplicates and sort
