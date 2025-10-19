@@ -328,8 +328,27 @@ def display_processing():
             minutes = int((elapsed % 3600) / 60)
             st.write(f"Elapsed time: {hours}h {minutes}m")
 
-    # Show progress table
-    # TODO: Implement progress table with check/X marks
+    # Show progress table with check/X marks
+    st.subheader("Processing Progress")
+
+    # Create progress table
+    progress_data = []
+    for series_entry in st.session_state.series_entries:
+        for volume in series_entry["volumes"]:
+            progress_data.append({
+                "Series": series_entry["selected_series"],
+                "Volume": volume,
+                "Status": "❌" if progress < total else "✅"
+            })
+
+    if progress_data:
+        # Display as a table
+        for i, item in enumerate(progress_data):
+            col1, col2, col3 = st.columns([3, 1, 1])
+            col1.write(f"{item['Series']} - Vol {item['Volume']}")
+            col2.write(item["Status"])
+            if i < len(progress_data) - 1:
+                st.divider()
 
     # Process volumes (simplified for now)
     if progress < total:
@@ -347,8 +366,91 @@ def display_results():
     """Step 7: Results display"""
     st.header("Processing Complete!")
 
-    # TODO: Implement results table with series headers and detailed information
-    st.write("Results table will be displayed here")
+    # Results table with series headers and detailed information
+    if not st.session_state.all_books:
+        st.info("No books were processed")
+        return
+
+    # Group books by series
+    from collections import defaultdict
+    series_groups = defaultdict(list)
+    for book in st.session_state.all_books:
+        series_groups[book.series_name].append(book)
+
+    # Display each series with header and volume details
+    for series_name in sorted(series_groups.keys()):
+        books = sorted(series_groups[series_name], key=lambda x: x.volume_number)
+
+        # Series header
+        st.markdown(f"### 📚 {series_name}")
+
+        # Series metadata
+        if books:
+            first_book = books[0]
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.write(f"**Author:** {', '.join(first_book.authors) if first_book.authors else 'Unknown'}")
+            with col2:
+                st.write(f"**Barcode Range:** {books[0].barcode} - {books[-1].barcode}")
+            with col3:
+                st.write(f"**Volume Range:** {books[0].volume_number} - {books[-1].volume_number}")
+            with col4:
+                st.write(f"**Total Volumes:** {len(books)}")
+
+        # Volume details table
+        st.subheader("Volume Details")
+
+        # Table header
+        col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 1, 1, 1, 2, 2])
+        col1.write("**Cover**")
+        col2.write("**Title**")
+        col3.write("**Vol**")
+        col4.write("**Barcode**")
+        col5.write("**MSRP**")
+        col6.write("**Physical Desc**")
+        col7.write("**Summary**")
+
+        # Volume rows
+        for book in books:
+            col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 1, 1, 1, 2, 2])
+
+            # Cover image
+            with col1:
+                if hasattr(book, 'cover_image_url') and book.cover_image_url:
+                    st.image(book.cover_image_url, width=50)
+                else:
+                    st.write("📚")
+
+            # Title
+            with col2:
+                st.write(book.book_title or f"{series_name} Vol. {book.volume_number}")
+
+            # Volume number
+            with col3:
+                st.write(str(book.volume_number))
+
+            # Barcode
+            with col4:
+                st.write(book.barcode)
+
+            # MSRP
+            with col5:
+                st.write(f"${book.msrp_cost:.2f}" if book.msrp_cost else "N/A")
+
+            # Physical description
+            with col6:
+                st.write(book.physical_description or "N/A")
+
+            # Summary description (truncated)
+            with col7:
+                desc = book.description or "No description"
+                if len(desc) > 100:
+                    st.write(f"{desc[:100]}...")
+                    st.caption("Hover for full description")
+                else:
+                    st.write(desc)
+
+        st.divider()
 
     # Export options
     col1, col2 = st.columns(2)
