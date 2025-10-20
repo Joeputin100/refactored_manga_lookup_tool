@@ -429,18 +429,11 @@ def search_series_info(series_name: str):
 
     except Exception as e:
         st.warning(f"Vertex AI failed: {e}. Falling back to other sources.")
-        # Silently fail for Vertex AI - it's an enhancement
-
-    # Try DeepSeek API second
-    try:
-        deepseek_api = DeepSeekAPI()
-        suggestions = deepseek_api.correct_series_name(series_name)
-        for suggestion in suggestions[:5]:  # Limit to 5 suggestions
-            # Get detailed series information
-            try:
-                book_data = deepseek_api.get_book_info(
-                    suggestion, 1, st.session_state.project_state
-                )
+        try:
+            deepseek_api = DeepSeekAPI()
+            suggestions = deepseek_api.correct_series_name(series_name)
+            for suggestion in suggestions[:5]:
+                book_data = deepseek_api.get_book_info(suggestion, 1, st.session_state.project_state)
                 if book_data:
                     results.append({
                         "name": suggestion,
@@ -448,41 +441,14 @@ def search_series_info(series_name: str):
                         "authors": book_data.get("authors", []),
                         "volume_count": book_data.get("number_of_extant_volumes", 0),
                         "summary": book_data.get("description", ""),
-                        "cover_url": None,  # Will be fetched separately
+                        "cover_url": None,
                         "additional_info": {
                             "genres": book_data.get("genres", []),
                             "publisher": book_data.get("publisher_name", ""),
-                            "status": "",
-                            "alternative_titles": [],
-                            "spin_offs": [],
-                            "adaptations": []
                         }
                     })
-                else:
-                    results.append({
-                        "name": suggestion,
-                        "source": "DeepSeek",
-                        "authors": [],
-                        "volume_count": 0,
-                        "summary": "",
-                        "cover_url": None,
-                        "additional_info": {}
-                    })
-            except Exception:
-                # If detailed lookup fails, still add the suggestion
-                results.append({
-                    "name": suggestion,
-                    "source": "DeepSeek",
-                    "authors": [],
-                    "volume_count": 0,
-                    "summary": "",
-                    "cover_url": None,
-                    "additional_info": {}
-                })
-    except Exception as e:
-        # Use generic error message for users, log detailed error
-        st.error("Sorry! An error occurred while searching for series information.")
-        print(f"DeepSeek API error: {e}")
+        except Exception as ds_e:
+            st.error(f"DeepSeek API also failed: {ds_e}")
 
     # Try Google Books for additional series information
     try:
@@ -855,7 +821,16 @@ def display_processing():
 
                     if book_data:
                         # Create BookInfo object and add barcode
-                        from manga_lookup import BookInfo
+                        from manga_lookup import BookInfo, GoogleBooksAPI
+                        google_books_api = GoogleBooksAPI()
+                        mangadex_fetcher = MangaDexCoverFetcher()
+
+                        cover_url = book_data.get("cover_image_url")
+                        if not cover_url:
+                            cover_url = google_books_api.get_cover_image_url(book_data.get("isbn_13"), st.session_state.project_state)
+                        if not cover_url:
+                            cover_url = mangadex_fetcher.fetch_cover(series_name, volume_num)
+
                         book = BookInfo(
                             series_name=book_data.get("series_name", series_name),
                             volume_number=volume_num,
@@ -869,7 +844,8 @@ def display_processing():
                             physical_description=book_data.get("physical_description"),
                             genres=book_data.get("genres", []),
                             warnings=[],
-                            barcode=barcodes[i]
+                            barcode=barcodes[i],
+                            cover_image_url=cover_url
                         )
                         st.session_state.all_books.append(book)
 
