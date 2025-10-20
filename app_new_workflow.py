@@ -459,320 +459,320 @@ def display_volume_input():
     )
 
     if st.button("Confirm Volumes"):
-        if not volume_range:
-        # Clean the input
-        original_volume_range = volume_range
-        volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
-        if volume_range != original_volume_range:
-            st.warning(f"Cleaned input from '{original_volume_range}' to '{volume_range}')
-            st.error("Please enter a volume range")
+            if not volume_range:
+            # Clean the input
+            original_volume_range = volume_range
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+            if volume_range != original_volume_range:
+                st.warning(f"Cleaned input from '{original_volume_range}' to '{volume_range}')
+                st.error("Please enter a volume range")
             return
-
-        # Debug: Show what's actually in the input
-
-        try:
-            volumes = parse_volume_range(volume_range)
-            if not volumes:
-                st.error("Invalid volume range format")
-                return
-
-            current_series["volume_range"] = volume_range
-            current_series["volumes"] = volumes
-            current_series["confirmed"] = True
-
-            # Calculate barcodes for this series
-            total_volumes_so_far = sum(len(entry["volumes"]) for entry in st.session_state.series_entries[:-1])
-
-            # Extract the numeric part from the starting barcode
-            match = re.match(r"([A-Za-z]*)(\d+)", st.session_state.start_barcode)
-            if match:
-                prefix = match.group(1) or ""
-                start_num = int(match.group(2))
-                num_digits = len(match.group(2))
-
-                # Calculate the starting barcode number for this series
-                current_start_num = start_num + total_volumes_so_far
-
-                # Generate the starting barcode for this series
-                current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
-
-                current_series["barcodes"] = generate_sequential_barcodes(
-                    current_start_barcode,
-                    len(volumes)
-                )
-            else:
-                # Fallback: use the original logic but with proper numeric extraction
-                numeric_part = ''.join(c for c in st.session_state.start_barcode if c.isdigit())
-                if numeric_part:
-                    start_num = int(numeric_part)
+    
+            # Debug: Show what's actually in the input
+    
+            try:
+                volumes = parse_volume_range(volume_range)
+                if not volumes:
+                    st.error("Invalid volume range format")
+                    return
+    
+                current_series["volume_range"] = volume_range
+                current_series["volumes"] = volumes
+                current_series["confirmed"] = True
+    
+                # Calculate barcodes for this series
+                total_volumes_so_far = sum(len(entry["volumes"]) for entry in st.session_state.series_entries[:-1])
+    
+                # Extract the numeric part from the starting barcode
+                match = re.match(r"([A-Za-z]*)(\d+)", st.session_state.start_barcode)
+                if match:
+                    prefix = match.group(1) or ""
+                    start_num = int(match.group(2))
+                    num_digits = len(match.group(2))
+    
+                    # Calculate the starting barcode number for this series
                     current_start_num = start_num + total_volumes_so_far
-                    current_start_barcode = st.session_state.start_barcode.replace(numeric_part, str(current_start_num).zfill(len(numeric_part)))
+    
+                    # Generate the starting barcode for this series
+                    current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
+    
                     current_series["barcodes"] = generate_sequential_barcodes(
                         current_start_barcode,
                         len(volumes)
                     )
                 else:
-                    raise ValueError(f"Invalid barcode format: {st.session_state.start_barcode}")
-
-            st.session_state.workflow_step = "series_confirmation"
-            st.rerun()
-
-        except ValueError as e:
-            st.error(f"Error parsing volume range '{volume_range}': {e}")
-            st.info("Valid formats: '1-10', '1,3,5,7', '1-5,8,10', or '17-18-19' for omnibus")
-        except Exception as e:
-            st.error(f"Unexpected error: {e}")
-
-
-def display_series_confirmation():
-    """Step 5: Series confirmation and option to add more"""
-    st.header("Step 5: Series Confirmation")
-
-    # Show all confirmed series
-    for i, series in enumerate(st.session_state.series_entries):
-        if series["confirmed"]:
-            st.write(f"**{series['selected_series']}** - {len(series['volumes'])} volumes")
-            st.write(f"Barcodes: {series['barcodes'][0]} to {series['barcodes'][-1]}")
-            st.write("---")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("Add Another Series"):
-            st.session_state.current_series_index += 1
-            st.session_state.series_entries.append({
-                "name": "",
-                "volume_range": "",
-                "volumes": [],
-                "start_barcode": "",
-                "confirmed": False,
-                "search_results": [],
-                "selected_series": None
-            })
-            st.session_state.workflow_step = "series_search"
-            st.rerun()
-
-    with col2:
-        if st.button("Start Processing"):
-            st.session_state.workflow_step = "processing"
-            st.rerun()
-
-
-def display_processing():
-    """Step 6: Processing display"""
-    st.header("Processing Manga Volumes")
-
-    # Initialize processing state
-    if not st.session_state.processing_state["is_processing"]:
-        total_volumes = sum(len(series["volumes"]) for series in st.session_state.series_entries)
-        st.session_state.processing_state = {
-            "is_processing": True,
-            "progress": 0,
-            "total_volumes": total_volumes,
-            "start_time": time.time(),
-            "results": []
-        }
-
-    # Show progress
-    state = st.session_state.processing_state
-    progress = state["progress"]
-    total = state["total_volumes"]
-
-    st.write(f"Processing {progress} of {total} volumes")
-
-    # Show elapsed time
-    if state["start_time"]:
-        elapsed = time.time() - state["start_time"]
-        if elapsed < 60:
-            st.write(f"Elapsed time: {int(elapsed)} seconds")
-        elif elapsed < 3600:
-            minutes = int(elapsed / 60)
-            seconds = int(elapsed % 60)
-            st.write(f"Elapsed time: {minutes}m {seconds}s")
-        else:
-            hours = int(elapsed / 3600)
-            minutes = int((elapsed % 3600) / 60)
-            st.write(f"Elapsed time: {hours}h {minutes}m")
-
-    # Show progress table with check/X marks
-    st.subheader("Processing Progress")
-
-    # Create progress table
-    progress_data = []
-    for series_entry in st.session_state.series_entries:
-        for volume in series_entry["volumes"]:
-            progress_data.append({
-                "Series": series_entry["selected_series"],
-                "Volume": volume,
-                "Status": "❌" if progress < total else "✅"
-            })
-
-    if progress_data:
-        # Display as a table
-        for i, item in enumerate(progress_data):
-            col1, col2, col3 = st.columns([3, 1, 1])
-            col1.write(f"{item['Series']} - Vol {item['Volume']}")
-            col2.write(item["Status"])
-            if i < len(progress_data) - 1:
-                st.divider()
-
-    # Process volumes (simplified for now)
-    if progress < total:
-        # Simulate processing
-        time.sleep(0.5)
-        st.session_state.processing_state["progress"] += 1
-        st.rerun()
-    else:
-        st.session_state.processing_state["is_processing"] = False
-        st.session_state.workflow_step = "results"
-        st.rerun()
-
-
-def display_results():
-    """Step 7: Results display"""
-    st.header("Processing Complete!")
-
-    # Results table with series headers and detailed information
-    if not st.session_state.all_books:
-        st.info("No books were processed")
-        return
-
-    # Group books by series
-    series_groups = defaultdict(list)
-    for book in st.session_state.all_books:
-        series_groups[book.series_name].append(book)
-
-    # Display each series with header and volume details
-    for series_name in sorted(series_groups.keys()):
-        books = sorted(series_groups[series_name], key=lambda x: x.volume_number)
-
-        # Series header
-        st.markdown(f"### 📚 {series_name}")
-
-        # Series metadata
-        if books:
-            first_book = books[0]
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.write(f"**Author:** {', '.join(first_book.authors) if first_book.authors else 'Unknown'}")
-            with col2:
-                st.write(f"**Barcode Range:** {books[0].barcode} - {books[-1].barcode}")
-            with col3:
-                st.write(f"**Volume Range:** {books[0].volume_number} - {books[-1].volume_number}")
-            with col4:
-                st.write(f"**Total Volumes:** {len(books)}")
-
-        # Volume details table
-        st.subheader("Volume Details")
-
-        # Table header
-        col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 1, 1, 1, 2, 2])
-        col1.write("**Cover**")
-        col2.write("**Title**")
-        col3.write("**Vol**")
-        col4.write("**Barcode**")
-        col5.write("**MSRP**")
-        col6.write("**Physical Desc**")
-        col7.write("**Summary**")
-
-        # Volume rows
-        for book in books:
-            col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 1, 1, 1, 2, 2])
-
-            # Cover image
-            with col1:
-                if hasattr(book, 'cover_image_url') and book.cover_image_url:
-                    st.image(book.cover_image_url, width=50)
-                else:
-                    st.write("📚")
-
-            # Title
-            with col2:
-                st.write(book.book_title or f"{series_name} Vol. {book.volume_number}")
-
-            # Volume number
-            with col3:
-                st.write(str(book.volume_number))
-
-            # Barcode
-            with col4:
-                st.write(book.barcode)
-
-            # MSRP
-            with col5:
-                st.write(f"${book.msrp_cost:.2f}" if book.msrp_cost else "N/A")
-
-            # Physical description
-            with col6:
-                st.write(book.physical_description or "N/A")
-
-            # Summary description (truncated)
-            with col7:
-                desc = book.description or "No description"
-                if len(desc) > 100:
-                    st.write(f"{desc[:100]}...")
-                    st.caption("Hover for full description")
-                else:
-                    st.write(desc)
-
-        st.divider()
-
-    # Export options
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("Export to MARC"):
-            try:
-                marc_data = export_books_to_marc(st.session_state.all_books)
-                st.success("MARC file exported successfully!")
-                st.download_button(
-                    "Download MARC File",
-                    data=marc_data,
-                    file_name="manga_export.mrc",
-                    mime="application/marc",
-                )
+                    # Fallback: use the original logic but with proper numeric extraction
+                    numeric_part = ''.join(c for c in st.session_state.start_barcode if c.isdigit())
+                    if numeric_part:
+                        start_num = int(numeric_part)
+                        current_start_num = start_num + total_volumes_so_far
+                        current_start_barcode = st.session_state.start_barcode.replace(numeric_part, str(current_start_num).zfill(len(numeric_part)))
+                        current_series["barcodes"] = generate_sequential_barcodes(
+                            current_start_barcode,
+                            len(volumes)
+                        )
+                    else:
+                        raise ValueError(f"Invalid barcode format: {st.session_state.start_barcode}")
+    
+                st.session_state.workflow_step = "series_confirmation"
+                st.rerun()
+    
+            except ValueError as e:
+                st.error(f"Error parsing volume range '{volume_range}': {e}")
+                st.info("Valid formats: '1-10', '1,3,5,7', '1-5,8,10', or '17-18-19' for omnibus")
             except Exception as e:
-                # Use generic error message for users, log detailed error
-                st.error("Sorry! An error occurred while exporting the file.")
-                print(f"Error exporting MARC: {e!s}")
-
-    with col2:
-        if st.button("Generate Labels"):
-            st.info("Label generation will be implemented")
-
-
-def main():
-    """Main application function"""
-    st.set_page_config(
-        page_title="Manga Lookup Tool",
-        page_icon="📚",
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
-
-    # Initialize session state
-    initialize_session_state()
-
-    # Main title
-    st.title("📚 Manga Lookup Tool")
-    st.markdown("---")
-
-    # Route to appropriate step
-    if st.session_state.workflow_step == "barcode_input":
-        display_barcode_input()
-    elif st.session_state.workflow_step == "barcode_confirmation":
-        display_barcode_confirmation()
-    elif st.session_state.workflow_step == "series_search":
-        display_series_search()
-    elif st.session_state.workflow_step == "volume_input":
-        display_volume_input()
-    elif st.session_state.workflow_step == "series_confirmation":
-        display_series_confirmation()
-    elif st.session_state.workflow_step == "processing":
-        display_processing()
-    elif st.session_state.workflow_step == "results":
-        display_results()
-
-
-if __name__ == "__main__":
-    main()
+                st.error(f"Unexpected error: {e}")
+    
+    
+    def display_series_confirmation():
+        """Step 5: Series confirmation and option to add more"""
+        st.header("Step 5: Series Confirmation")
+    
+        # Show all confirmed series
+        for i, series in enumerate(st.session_state.series_entries):
+            if series["confirmed"]:
+                st.write(f"**{series['selected_series']}** - {len(series['volumes'])} volumes")
+                st.write(f"Barcodes: {series['barcodes'][0]} to {series['barcodes'][-1]}")
+                st.write("---")
+    
+        col1, col2 = st.columns(2)
+    
+        with col1:
+            if st.button("Add Another Series"):
+                st.session_state.current_series_index += 1
+                st.session_state.series_entries.append({
+                    "name": "",
+                    "volume_range": "",
+                    "volumes": [],
+                    "start_barcode": "",
+                    "confirmed": False,
+                    "search_results": [],
+                    "selected_series": None
+                })
+                st.session_state.workflow_step = "series_search"
+                st.rerun()
+    
+        with col2:
+            if st.button("Start Processing"):
+                st.session_state.workflow_step = "processing"
+                st.rerun()
+    
+    
+    def display_processing():
+        """Step 6: Processing display"""
+        st.header("Processing Manga Volumes")
+    
+        # Initialize processing state
+        if not st.session_state.processing_state["is_processing"]:
+            total_volumes = sum(len(series["volumes"]) for series in st.session_state.series_entries)
+            st.session_state.processing_state = {
+                "is_processing": True,
+                "progress": 0,
+                "total_volumes": total_volumes,
+                "start_time": time.time(),
+                "results": []
+            }
+    
+        # Show progress
+        state = st.session_state.processing_state
+        progress = state["progress"]
+        total = state["total_volumes"]
+    
+        st.write(f"Processing {progress} of {total} volumes")
+    
+        # Show elapsed time
+        if state["start_time"]:
+            elapsed = time.time() - state["start_time"]
+            if elapsed < 60:
+                st.write(f"Elapsed time: {int(elapsed)} seconds")
+            elif elapsed < 3600:
+                minutes = int(elapsed / 60)
+                seconds = int(elapsed % 60)
+                st.write(f"Elapsed time: {minutes}m {seconds}s")
+            else:
+                hours = int(elapsed / 3600)
+                minutes = int((elapsed % 3600) / 60)
+                st.write(f"Elapsed time: {hours}h {minutes}m")
+    
+        # Show progress table with check/X marks
+        st.subheader("Processing Progress")
+    
+        # Create progress table
+        progress_data = []
+        for series_entry in st.session_state.series_entries:
+            for volume in series_entry["volumes"]:
+                progress_data.append({
+                    "Series": series_entry["selected_series"],
+                    "Volume": volume,
+                    "Status": "❌" if progress < total else "✅"
+                })
+    
+        if progress_data:
+            # Display as a table
+            for i, item in enumerate(progress_data):
+                col1, col2, col3 = st.columns([3, 1, 1])
+                col1.write(f"{item['Series']} - Vol {item['Volume']}")
+                col2.write(item["Status"])
+                if i < len(progress_data) - 1:
+                    st.divider()
+    
+        # Process volumes (simplified for now)
+        if progress < total:
+            # Simulate processing
+            time.sleep(0.5)
+            st.session_state.processing_state["progress"] += 1
+            st.rerun()
+        else:
+            st.session_state.processing_state["is_processing"] = False
+            st.session_state.workflow_step = "results"
+            st.rerun()
+    
+    
+    def display_results():
+        """Step 7: Results display"""
+        st.header("Processing Complete!")
+    
+        # Results table with series headers and detailed information
+        if not st.session_state.all_books:
+            st.info("No books were processed")
+            return
+    
+        # Group books by series
+        series_groups = defaultdict(list)
+        for book in st.session_state.all_books:
+            series_groups[book.series_name].append(book)
+    
+        # Display each series with header and volume details
+        for series_name in sorted(series_groups.keys()):
+            books = sorted(series_groups[series_name], key=lambda x: x.volume_number)
+    
+            # Series header
+            st.markdown(f"### 📚 {series_name}")
+    
+            # Series metadata
+            if books:
+                first_book = books[0]
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.write(f"**Author:** {', '.join(first_book.authors) if first_book.authors else 'Unknown'}")
+                with col2:
+                    st.write(f"**Barcode Range:** {books[0].barcode} - {books[-1].barcode}")
+                with col3:
+                    st.write(f"**Volume Range:** {books[0].volume_number} - {books[-1].volume_number}")
+                with col4:
+                    st.write(f"**Total Volumes:** {len(books)}")
+    
+            # Volume details table
+            st.subheader("Volume Details")
+    
+            # Table header
+            col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 1, 1, 1, 2, 2])
+            col1.write("**Cover**")
+            col2.write("**Title**")
+            col3.write("**Vol**")
+            col4.write("**Barcode**")
+            col5.write("**MSRP**")
+            col6.write("**Physical Desc**")
+            col7.write("**Summary**")
+    
+            # Volume rows
+            for book in books:
+                col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 1, 1, 1, 2, 2])
+    
+                # Cover image
+                with col1:
+                    if hasattr(book, 'cover_image_url') and book.cover_image_url:
+                        st.image(book.cover_image_url, width=50)
+                    else:
+                        st.write("📚")
+    
+                # Title
+                with col2:
+                    st.write(book.book_title or f"{series_name} Vol. {book.volume_number}")
+    
+                # Volume number
+                with col3:
+                    st.write(str(book.volume_number))
+    
+                # Barcode
+                with col4:
+                    st.write(book.barcode)
+    
+                # MSRP
+                with col5:
+                    st.write(f"${book.msrp_cost:.2f}" if book.msrp_cost else "N/A")
+    
+                # Physical description
+                with col6:
+                    st.write(book.physical_description or "N/A")
+    
+                # Summary description (truncated)
+                with col7:
+                    desc = book.description or "No description"
+                    if len(desc) > 100:
+                        st.write(f"{desc[:100]}...")
+                        st.caption("Hover for full description")
+                    else:
+                        st.write(desc)
+    
+            st.divider()
+    
+        # Export options
+        col1, col2 = st.columns(2)
+    
+        with col1:
+            if st.button("Export to MARC"):
+                try:
+                    marc_data = export_books_to_marc(st.session_state.all_books)
+                    st.success("MARC file exported successfully!")
+                    st.download_button(
+                        "Download MARC File",
+                        data=marc_data,
+                        file_name="manga_export.mrc",
+                        mime="application/marc",
+                    )
+                except Exception as e:
+                    # Use generic error message for users, log detailed error
+                    st.error("Sorry! An error occurred while exporting the file.")
+                    print(f"Error exporting MARC: {e!s}")
+    
+        with col2:
+            if st.button("Generate Labels"):
+                st.info("Label generation will be implemented")
+    
+    
+    def main():
+        """Main application function"""
+        st.set_page_config(
+            page_title="Manga Lookup Tool",
+            page_icon="📚",
+            layout="wide",
+            initial_sidebar_state="expanded",
+        )
+    
+        # Initialize session state
+        initialize_session_state()
+    
+        # Main title
+        st.title("📚 Manga Lookup Tool")
+        st.markdown("---")
+    
+        # Route to appropriate step
+        if st.session_state.workflow_step == "barcode_input":
+            display_barcode_input()
+        elif st.session_state.workflow_step == "barcode_confirmation":
+            display_barcode_confirmation()
+        elif st.session_state.workflow_step == "series_search":
+            display_series_search()
+        elif st.session_state.workflow_step == "volume_input":
+            display_volume_input()
+        elif st.session_state.workflow_step == "series_confirmation":
+            display_series_confirmation()
+        elif st.session_state.workflow_step == "processing":
+            display_processing()
+        elif st.session_state.workflow_step == "results":
+            display_results()
+    
+    
+    if __name__ == "__main__":
+        main()
