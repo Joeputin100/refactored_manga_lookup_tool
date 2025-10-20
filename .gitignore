@@ -36,4 +36,4 @@ secrets.toml
 Thumbs.db
 
 # Streamlit
-.streamlit/
+.streamlit/gcloud-service-key.json
