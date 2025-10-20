@@ -39,6 +39,33 @@ from mal_cover_fetcher import MALCoverFetcher
 from mangadex_cover_fetcher import MangaDexCoverFetcher
 
 
+class SessionStateCache:
+    """In-memory cache using Streamlit session state for persistence"""
+
+    def __init__(self):
+        # Initialize cache in session state if not exists
+        if "cache_series_info" not in st.session_state:
+            st.session_state.cache_series_info = {}
+        if "cache_cover_images" not in st.session_state:
+            st.session_state.cache_cover_images = {}
+
+    def get_cached_series_info(self, series_name: str):
+        """Get cached series information"""
+        return st.session_state.cache_series_info.get(series_name)
+
+    def cache_series_info(self, series_name: str, series_info: dict):
+        """Cache series information"""
+        st.session_state.cache_series_info[series_name] = series_info
+
+    def get_cached_cover_image(self, key: str):
+        """Get cached cover image URL"""
+        return st.session_state.cache_cover_images.get(key)
+
+    def cache_cover_image(self, key: str, url: str):
+        """Cache cover image URL"""
+        st.session_state.cache_cover_images[key] = url
+
+
 def initialize_session_state():
     """Initialize session state variables for new workflow"""
     if "workflow_step" not in st.session_state:
@@ -59,19 +86,13 @@ def initialize_session_state():
             "start_time": None,
         }
     if "project_state" not in st.session_state:
+        # Try SQLite database first (for permanent storage)
         try:
-            # Try using /tmp/ directory for Streamlit Cloud compatibility
-            import tempfile
-            temp_db = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
-            st.session_state.project_state = ProjectState(temp_db.name)
+            st.session_state.project_state = ProjectState()
         except Exception as e:
-            # Fallback to current directory if /tmp/ doesn't work
-            try:
-                st.session_state.project_state = ProjectState()
-            except Exception as e2:
-                # Final fallback - no database caching
-                st.warning(f"Database initialization failed: {e2}. Using in-memory cache.")
-                st.session_state.project_state = None
+            # Fallback to session state cache if SQLite fails
+            st.warning(f"SQLite database initialization failed: {e}. Using session state cache.")
+            st.session_state.project_state = SessionStateCache()
 
 
 def display_barcode_input():
@@ -170,35 +191,32 @@ def search_series_info(series_name: str):
     results = []
 
     # Check cache first for the original series name
-    if st.session_state.project_state:
-        try:
-            cached_info = st.session_state.project_state.get_cached_series_info(series_name)
-            if cached_info:
-                st.success(f"🎯 Using cached data for: {series_name}")
-                # Convert cached data to the expected format
-                results.append({
-                    "name": cached_info.get("corrected_series_name", series_name),
-                    "source": "Vertex AI (Cached)",
-                    "authors": [cached_info.get("authors", "")] if cached_info.get("authors") else [],
-                    "volume_count": cached_info.get("extant_volumes", 0),
-                    "summary": cached_info.get("summary", ""),
-                    "cover_url": cached_info.get("cover_image_url", None),
-                    "additional_info": {
-                        "genres": [],
-                        "publisher": "",
-                        "status": "",
-                        "alternative_titles": cached_info.get("alternative_titles", []),
-                        "spin_offs": cached_info.get("spinoff_series", []),
-                        "adaptations": []
-                    }
-                })
-                return results
-            else:
-                st.info(f"🔍 No cached data found for: {series_name}, making API call...")
-        except Exception as e:
-            st.warning(f"Cache check failed: {e}")
-    else:
-        st.info(f"🔍 No database cache available, making API call for: {series_name}")
+    try:
+        cached_info = st.session_state.project_state.get_cached_series_info(series_name)
+        if cached_info:
+            st.success(f"🎯 Using cached data for: {series_name}")
+            # Convert cached data to the expected format
+            results.append({
+                "name": cached_info.get("corrected_series_name", series_name),
+                "source": "Vertex AI (Cached)",
+                "authors": [cached_info.get("authors", "")] if cached_info.get("authors") else [],
+                "volume_count": cached_info.get("extant_volumes", 0),
+                "summary": cached_info.get("summary", ""),
+                "cover_url": cached_info.get("cover_image_url", None),
+                "additional_info": {
+                    "genres": [],
+                    "publisher": "",
+                    "status": "",
+                    "alternative_titles": cached_info.get("alternative_titles", []),
+                    "spin_offs": cached_info.get("spinoff_series", []),
+                    "adaptations": []
+                }
+            })
+            return results
+        else:
+            st.info(f"🔍 No cached data found for: {series_name}, making API call...")
+    except Exception as e:
+        st.warning(f"Cache check failed: {e}")
 
     # Debug: Check if Vertex AI is properly configured
     try:
