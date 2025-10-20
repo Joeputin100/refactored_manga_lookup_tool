@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import json
+from dotenv import load_dotenv
 from manga_lookup import VertexAIAPI, ProjectState
+
+# Load environment variables from secrets.toml
+load_dotenv(dotenv_path='secrets.toml')
 
 # --- Configuration ---
 SERIES_TO_TEST = "One Piece"  # <-- Change this to test different series
