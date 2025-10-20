@@ -403,10 +403,11 @@ def search_series_info(series_name: str):
                 # Cache the series info for future use
                 st.session_state.project_state.cache_series_info(suggestion, series_info)
 
+                # Main series result
                 results.append({
                     "name": suggestion,
                     "source": "Vertex AI",
-                    "authors": [series_info.get("authors", "")] if series_info.get("authors") else [],
+                    "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
                     "volume_count": series_info.get("extant_volumes", 0),
                     "summary": series_info.get("summary", ""),
                     "cover_url": series_info.get("cover_image_url", None),
@@ -419,6 +420,27 @@ def search_series_info(series_name: str):
                         "adaptations": []
                     }
                 })
+
+                # Add separate results for alternate editions
+                for edition in series_info.get("alternate_editions", []):
+                    results.append({
+                        "name": f"{suggestion} ({edition.get('edition_name', '')})",
+                        "source": "Vertex AI",
+                        "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
+                        "volume_count": series_info.get("extant_volumes", 0),
+                        "summary": series_info.get("summary", ""),
+                        "cover_url": series_info.get("cover_image_url", None),
+                        "volumes_per_book": edition.get("volumes_per_book"),
+                        "additional_info": {
+                            "genres": [],
+                            "publisher": "",
+                            "status": "",
+                            "alternative_titles": [],
+                            "spin_offs": [],
+                            "adaptations": []
+                        }
+                    })
+
             except Exception as detail_error:
                 # Use generic error message for users, log detailed error
                 st.warning("⚠️ Error fetching detailed series information from Vertex AI.")
@@ -640,7 +662,7 @@ def display_series_search():
                         st.write(f"**Authors:** {', '.join(result['authors'])}")
 
                     if result["volume_count"] > 0:
-                        st.write(f"**Volumes:** {result.get('volume_count', 'Unknown')}")
+                        st.write(f"**Number of Extant Volumes:** {result.get('volume_count', 'Unknown')}")
 
                     # Show additional info if available
                     additional_info = result.get("additional_info", {})
@@ -655,9 +677,15 @@ def display_series_search():
 
                     if additional_info.get("alternative_titles"):
                         st.write(f"**Also known as:** {', '.join(additional_info['alternative_titles'])}")
+                    
+                    if additional_info.get("spin_offs"):
+                        st.write(f"**Spinoffs/Alternate Editions:** {', '.join(additional_info['spin_offs'])}")
+
+                    if result.get("volumes_per_book"):
+                        st.write(f"**Volumes per Book:** {result['volumes_per_book']}")
 
                     if result["summary"]:
-                        st.write(f"**Summary:** {result['summary']}")
+                        st.write(f"**Description:** {result['summary']}")
 
                     st.caption("Note: Covers may appear differently in different editions, printings, and languages.")
 
