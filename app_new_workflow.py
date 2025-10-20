@@ -66,6 +66,55 @@ class SessionStateCache:
         st.session_state.cache_cover_images[key] = url
 
 
+def initialize_precached_data():
+    """Initialize pre-cached data for popular manga series"""
+    # List of popular manga series to pre-cache
+    popular_series = [
+        "One Piece", "Naruto", "Dragon Ball", "Attack on Titan", "My Hero Academia",
+        "Demon Slayer", "Death Note", "Fullmetal Alchemist", "Bleach", "Hunter x Hunter",
+        "Tokyo Ghoul", "One-Punch Man", "Fairy Tail", "Black Clover", "Jujutsu Kaisen",
+        "Chainsaw Man", "Spy x Family", "Haikyuu!!", "JoJo's Bizarre Adventure", "Berserk",
+        "Vinland Saga", "Kingdom", "Slam Dunk", "The Promised Neverland", "Mob Psycho 100",
+        "Dr. Stone", "Fire Force", "Blue Lock", "Kaguya-sama: Love Is War", "That Time I Got Reincarnated as a Slime"
+    ]
+
+    # Pre-cache basic series info (volume counts and basic metadata)
+    for series in popular_series:
+        # Create basic cached data structure
+        cached_info = {
+            "corrected_series_name": series,
+            "authors": [],  # Will be populated by APIs
+            "extant_volumes": 0,  # Will be populated by APIs
+            "summary": "",  # Will be populated by APIs
+            "cover_image_url": None,  # Will be populated by APIs
+            "alternative_titles": [],
+            "spinoff_series": []
+        }
+
+        # Set default volume counts for popular series
+        volume_counts = {
+            "One Piece": 100, "Naruto": 72, "Dragon Ball": 42, "Attack on Titan": 34,
+            "My Hero Academia": 38, "Demon Slayer": 23, "Death Note": 12, "Fullmetal Alchemist": 27,
+            "Bleach": 74, "Hunter x Hunter": 36, "Tokyo Ghoul": 14, "One-Punch Man": 28,
+            "Fairy Tail": 63, "Black Clover": 35, "Jujutsu Kaisen": 25, "Chainsaw Man": 15,
+            "Spy x Family": 12, "Haikyuu!!": 45, "JoJo's Bizarre Adventure": 130,
+            "Berserk": 41, "Vinland Saga": 27, "Kingdom": 70, "Slam Dunk": 31,
+            "The Promised Neverland": 20, "Mob Psycho 100": 16, "Dr. Stone": 26,
+            "Fire Force": 34, "Blue Lock": 28, "Kaguya-sama: Love Is War": 28,
+            "That Time I Got Reincarnated as a Slime": 22
+        }
+
+        if series in volume_counts:
+            cached_info["extant_volumes"] = volume_counts[series]
+
+        # Cache the series info
+        try:
+            st.session_state.project_state.cache_series_info(series, cached_info)
+        except Exception as e:
+            # Silently fail if caching doesn't work
+            pass
+
+
 def initialize_session_state():
     """Initialize session state variables for new workflow"""
     if "workflow_step" not in st.session_state:
@@ -93,6 +142,9 @@ def initialize_session_state():
             # Fallback to session state cache if SQLite fails
             st.warning(f"SQLite database initialization failed: {e}. Using session state cache.")
             st.session_state.project_state = SessionStateCache()
+
+    # Initialize pre-cached data
+    initialize_precached_data()
 
 
 def display_barcode_input():
