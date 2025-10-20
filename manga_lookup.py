@@ -228,10 +228,12 @@ class ProjectState:
 
         self.conn.commit()
 
-    def get_cached_response(self, prompt: str, volume: int) -> str | None:
+    def get_cached_response(self, prompt: str, volume: int) -> Union[str, None]:
         """Get cached response if available"""
         # Always return None to disable caching
         return None
+
+    def record_search(self, search_query: str, books_found: int):
         """Record a new user interaction"""
         cursor = self.conn.cursor()
         timestamp = datetime.now(timezone.utc).isoformat()
@@ -249,10 +251,12 @@ class ProjectState:
         )
         self.conn.commit()
 
-    def get_cached_cover_image(self, isbn_key: str) -> str | None:
+    def get_cached_cover_image(self, isbn_key: str) -> Union[str, None]:
         """Get cached cover image URL by ISBN key"""
         # Always return None to disable caching
         return None
+
+    def cache_cover_image(self, isbn_key: str, url: str):
         """Cache a cover image URL"""
         cursor = self.conn.cursor()
         timestamp = datetime.now(timezone.utc).isoformat()
@@ -299,10 +303,12 @@ class ProjectState:
         self.conn.commit()
         print(f"💾 Cached series info for: {series_name}")
 
-    def get_cached_series_info(self, series_name: str) -> dict | None:
+    def get_cached_series_info(self, series_name: str) -> Union[dict, None]:
         """Get cached series information if available (permanent cache)"""
         # Always return None to disable caching
         return None
+
+    def track_api_usage(self, api_name: str, endpoint: str, tokens_used: int):
         """Track API usage and estimate costs"""
         cursor = self.conn.cursor()
         timestamp = datetime.now(timezone.utc).isoformat()
@@ -558,7 +564,7 @@ class DeepSeekAPI:
         volume_number: int,
         project_state: ProjectState,
         retry_count: int = 0,
-    ) -> dict | None:
+    ) -> Union[dict, None]:
         """Get comprehensive book information using DeepSeek API"""
 
         # Maximum retry limit to prevent infinite recursion
@@ -721,7 +727,7 @@ class GoogleBooksAPI:
     def __init__(self):
         self.base_url = "https://www.googleapis.com/books/v1/volumes"
 
-    def _select_cover_image(self, image_links: dict) -> str | None:
+    def _select_cover_image(self, image_links: dict) -> Union[str, None]:
         """Select the best available cover image from Google Books image links."""
         for size in ["smallThumbnail", "thumbnail", "small", "medium", "large", "extraLarge"]:
             if size in image_links:
@@ -731,8 +737,8 @@ class GoogleBooksAPI:
     def get_cover_image_url(
         self,
         isbn: str,
-        project_state: ProjectState | None = None,
-    ) -> str | None:
+        project_state: Union[ProjectState, None] = None,
+    ) -> Union[str, None]:
         """Get cover image URL for a book by ISBN using keyless Google Books API"""
         if not isbn:
             return None
@@ -812,264 +818,6 @@ class GoogleBooksAPI:
             return 0
 
 
-    def get_book_info(
-        self, series_name: str, volume_number: int, project_state: ProjectState | None = None
-    ) -> dict | None:
-        """Get detailed information for a specific volume using a comprehensive prompt"""
-        prompt = f"""
-        Provide comprehensive information for the manga "{series_name}" Volume {volume_number}.
-
-        Return a JSON object with these exact fields:
-        - "series_name": The official series name
-        - "book_title": The specific title for this volume (e.g., "Volume 1: The Beginning")
-        - "authors": List of author names (e.g., ["Eiichiro Oda", "Masashi Kishimoto"])
-        - "msrp_cost": The retail price in USD (e.g., 9.99)
-        - "isbn_13": The 13-digit ISBN (e.g., "9781421502670")
-        - "publisher_name": The publisher (e.g., "VIZ Media", "Kodansha Comics")
-        - "copyright_year": The copyright year (e.g., 2003)
-        - "description": A brief description of the volume's content
-        - "physical_description": Physical details like pages, dimensions (e.g., "192 pages, 5 x 7.5 inches")
-        - "genres": List of genres (e.g., ["Action", "Adventure", "Fantasy"])
-        - "number_of_extant_volumes": Total number of volumes in the series
-        - "cover_image_url": URL to the cover image if available
-
-        Important:
-        - Return ONLY valid JSON, no additional text
-        - Use exact field names as specified
-        - If information is unavailable, use null or empty values
-        - Prioritize English edition information
-        """
-        
-        aiplatform.init(project=self.project_id, location=self.location)
-        model = GenerativeModel("gemini-1.5-flash")
-
-        generation_config = {
-            "response_mime_type": "application/json",
-            "temperature": 0.0,
-        }
-
-        try:
-            response = model.generate_content(
-                prompt,
-                generation_config=generation_config,
-            )
-            book_data = json.loads(response.text)
-            if project_state:
-                project_state.track_api_usage("vertex_ai", "generateContent", 0)  # Token count not available in this SDK version
-            return book_data
-        except Exception as e:
-            print(f"Error getting book info from Vertex AI for {series_name} Vol {volume_number}: {e}")
-            return None
-
-    def correct_series_name(self, series_name: str, project_state: ProjectState | None = None) -> list[str]:
-        pass
-def validate_barcode(barcode: str) -> bool:
-    """
-    Validate barcode format according to library standards.
-    Based on MARC21 field 852 subfield p and common library practices.
-
-    Requirements:
-    - Alphanumeric characters only (A-Z, a-z, 0-9)
-    - Maximum length: 20 characters (MARC21 field 852 subfield p)
-    - Minimum length: 1 character
-    - Must end with a digit
-    - No special characters except hyphens
-    """
-    if not barcode:
-        return False
-
-    # Check length
-    if len(barcode) > 20 or len(barcode) < 1:
-        return False
-
-    # Check if ends with digit
-    if not barcode[-1].isdigit():
-        return False
-
-    # Check for valid characters (alphanumeric and hyphens only)
-    if not re.match(r'^[A-Za-z0-9\\-]+$', barcode):
-        return False
-
-    return True
-
-
-def validate_series_name(name: str) -> bool:
-    """
-    Validate series name according to MARC21 field 245 standards.
-
-    MARC21 field 245 (Title Statement) allows up to 255 characters,
-    but we'll use a more practical limit for display purposes.
-    """
-    if not name:
-        return False
-
-    # MARC21 field 245 allows up to 255 characters
-    if len(name) > 255:
-        return False
-
-    # Check for minimum reasonable length
-    if len(name) < 1:
-        return False
-
-    return True
-
-
-def sanitize_series_name(name: str) -> str:
-    """
-    Sanitize series name according to library cataloging standards.
-    Based on MARC21 field 245 and common library practices.
-
-    Removes or escapes special characters that could cause issues
-    in library systems or database operations.
-    """
-    if not name:
-        return ""
-
-    # Remove or replace problematic characters
-    # Allow: letters, numbers, spaces, hyphens, parentheses, colons
-    # Remove: other special characters that could cause SQL injection or display issues
-    sanitized = re.sub(r'[^\w\s\-\(\)\:]+', '', name)
-
-    # Limit length to MARC21 field 245 maximum (255 characters)
-    sanitized = sanitized[:255]
-
-    return sanitized.strip()
-
-
-def validate_author_name(name: str) -> bool:
-    """
-    Validate author name according to MARC21 field 100 standards.
-
-    MARC21 field 100 (Main Entry - Personal Name) allows up to 255 characters.
-    """
-    if not name:
-        return False
-
-    # MARC21 field 100 allows up to 255 characters
-    if len(name) > 255:
-        return False
-
-    return True
-
-
-def validate_description(text: str) -> bool:
-    """
-    Validate description text according to MARC21 field 520 standards.
-
-    MARC21 field 520 (Summary, etc.) allows up to 5000 characters.
-    """
-    if not text:
-        return True  # Empty descriptions are allowed
-
-    # MARC21 field 520 allows up to 5000 characters
-    if len(text) > 5000:
-        return False
-
-    return True
-
-
-def parse_volume_range(volume_input: str) -> list[int]:
-    """Parse volume range input like '1-5,7,10' and omnibus formats like '17-18-19' into list of volume numbers"""
-    volumes = []
-
-    # Clean the input - remove any non-numeric characters except commas and hyphens
-    cleaned_input = "".join(c for c in volume_input if c.isdigit() or c in "-,")
-
-    if not cleaned_input:
-        raise ValueError("Volume range must contain numbers")
-
-    # Split by commas
-    parts = [part.strip() for part in cleaned_input.split(",") if part.strip()]
-
-    if not parts:
-        raise ValueError("No valid volume ranges found")
-
-    for part in parts:
-        if "-" in part:
-            # Count the number of hyphens to determine format
-            hyphens_count = part.count("-")
-
-            if hyphens_count == 1:
-                # Handle range like '1-5' (single range)
-                try:
-                    start, end = map(int, part.split("-"))
-                    if start > end:
-                        raise ValueError(f"Range start ({start}) cannot be greater than end ({end})")
-                    volumes.extend(range(start, end + 1))
-                except ValueError as e:
-                    msg = f"Invalid volume range format: '{part}' - {e}"
-                    raise ValueError(msg) from e
-            else:
-                # Handle omnibus format like '17-18-19' (multiple volumes in one book)
-                try:
-                    # Split by hyphens and convert all parts to integers
-                    omnibus_volumes = list(map(int, part.split("-")))
-                    volumes.extend(omnibus_volumes)
-                except ValueError as e:
-                    msg = f"Invalid omnibus format: '{part}' - {e}"
-                    raise ValueError(msg) from e
-        else:
-            # Handle single volume like '7'
-            try:
-                volumes.append(int(part))
-            except ValueError as e:
-                msg = f"Invalid volume number: '{part}' - {e}"
-                raise ValueError(msg) from e
-
-    # Remove duplicates and sort
-    return sorted(set(volumes))
-
-
-def generate_sequential_barcodes(start_barcode: str, count: int) -> list[str]:
-    """Generate sequential barcodes from a starting barcode"""
-    barcodes = []
-
-    # Extract prefix and numeric part
-
-    match = re.match(r"([A-Za-z]*)(\d+)", start_barcode)
-
-    if not match:
-        msg = f"Invalid barcode format: {start_barcode}. Expected format like 'T000001'"
-        raise ValueError(
-            msg,
-        )
-
-    prefix = match.group(1) or ""
-    start_num = int(match.group(2))
-    num_digits = len(match.group(2))
-
-    for i in range(count):
-        current_num = start_num + i
-        barcode = f"{prefix}{current_num:0{num_digits}d}"
-        barcodes.append(barcode)
-
-    return barcodes
-
-
-# ----------------------------------------------------------------------
-# Define the desired JSON output structure using Pydantic
-# ----------------------------------------------------------------------
-
-# Define the structure for alternate editions
-class AlternateEdition(BaseModel):
-    """Schema for alternate editions of the manga series."""
-    edition_name: str = Field(description="Name of the alternate edition (e.g., 'Omnibus', 'Collector's Edition').")
-    volumes_per_book: int = Field(description="Number of original volumes collected per book in this edition.")
-
-
-# Define the main output structure
-class MangaSeriesInfo(BaseModel):
-    """Schema for the grounded manga series information."""
-    corrected_series_name: str = Field(description="The full, correct name of the manga series.")
-    authors: str = Field(description="Authors/artists, inverted and comma-separated (e.g., 'Oda, Eiichiro; Toriyama, Akira').")
-    extant_volumes: int = Field(description="The number of published volumes in the primary series to date.")
-    short_description: str = Field(description="A single, concise, and catchy sentence describing the series.")
-    summary: str = Field(description="A short paragraph (3-5 sentences) summarizing the plot and main themes.")
-    cover_image_url: str = Field(description="A direct URL to a high-quality cover image for the primary series.")
-    alternate_editions: List[AlternateEdition] = Field(description="A list of known alternate editions of the series.")
-    spinoff_series: List[str] = Field(description="A list of official, notable spinoff manga series titles.")
-
-
 class VertexAIAPI:
     """Handles Google Vertex AI API interactions for comprehensive manga data using REST APIs"""
 
@@ -1101,7 +849,7 @@ class VertexAIAPI:
         response.raise_for_status()
         return response.json()
 
-    def get_comprehensive_series_info(self, series_name: str, project_state: ProjectState | None = None) -> dict:
+    def get_comprehensive_series_info(self, series_name: str, project_state: Union[ProjectState, None] = None) -> dict:
         prompt = f"""
         Perform comprehensive grounded research on the manga series '{series_name}'.
         IMPORTANT: Include ALL spinoff series, prequels, sequels, and related works.
@@ -1111,14 +859,14 @@ class VertexAIAPI:
         # This is a simplified placeholder. A proper implementation would require a schema definition.
         return self._make_request(prompt)
 
-    def get_book_info(self, series_name: str, volume_number: int, project_state: ProjectState | None = None) -> dict | None:
+    def get_book_info(self, series_name: str, volume_number: int, project_state: Union[ProjectState, None] = None) -> Union[dict, None]:
         prompt = f"""
         Provide comprehensive information for the manga "{series_name}" Volume {volume_number}.
         Return a JSON object with exact fields like "series_name", "book_title", etc.
         """
         return self._make_request(prompt)
 
-    def correct_series_name(self, series_name: str, project_state: ProjectState | None = None) -> list[str]:
+    def correct_series_name(self, series_name: str, project_state: Union[ProjectState, None] = None) -> list[str]:
         # This method is not strictly necessary if get_comprehensive_series_info works well.
         # For now, we'll just return the original name.
         return [series_name]
@@ -1127,8 +875,8 @@ class VertexAIAPI:
 def process_book_data(
     raw_data: dict,
     volume_number: int,
-    google_books_api: GoogleBooksAPI | None = None,
-    project_state: ProjectState | None = None,
+    google_books_api: Union[GoogleBooksAPI, None] = None,
+    project_state: Union[ProjectState, None] = None,
 ) -> BookInfo:
     """Process raw API data into structured BookInfo"""
     warnings = []
@@ -1195,7 +943,7 @@ def process_book_data(
             matches = re.findall(pattern, date_str)
             if matches:
                 year = int(matches[0])
-                if MIN_COPYRIGHT_YEAR <= year <= datetime.now(UTC).year + 1:
+                if MIN_COPYRIGHT_YEAR <= year <= datetime.now(timezone.utc).year + 1:
                     copyright_year = year
                     break
     if not copyright_year:
@@ -1241,7 +989,7 @@ def process_book_data(
         warnings=warnings,
         cover_image_url=cover_image_url,
     )
-def generate_book_info(book: BookInfo, project_state: ProjectState) -> dict | None:
+def generate_book_info(book: BookInfo, project_state: ProjectState) -> Union[dict, None]:
     series_name = book.series_name
     volume_number = book.volume
     series_info = project_state.get_cached_series_info(series_name)
