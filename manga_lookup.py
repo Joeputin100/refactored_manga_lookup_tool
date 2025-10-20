@@ -1397,15 +1397,6 @@ def process_book_data(
         warnings=warnings,
         cover_image_url=cover_image_url,
     )
-        "authors": ["Unknown"],
-        "description": "Generated book info",
-        "isbn": "",
-        "publisher": "",
-        "publication_date": "",
-        "page_count": 0,
-        "language": "en",
-        "cover_image_url": ""
-    }
 def generate_book_info(book: BookInfo, project_state: ProjectState) -> dict | None:
     series_name = book.series_name
     volume_number = book.volume
