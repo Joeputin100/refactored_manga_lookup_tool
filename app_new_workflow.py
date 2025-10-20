@@ -707,13 +707,22 @@ def display_volume_input():
             current_series["volume_range"] = volume_range
             current_series["volumes"] = volumes
             current_series["confirmed"] = True
-            num_digits = len(match.group(2))
+
+            # Calculate the starting barcode for this series
+            total_volumes_so_far = sum(len(s["volumes"]) for s in st.session_state.series_entries if s["confirmed"])
+
+            # Use regex to extract prefix and numeric part of the barcode
+            match = re.match(r"([a-zA-Z]*)(\d+)", st.session_state.start_barcode)
+            if match:
+                prefix = match.group(1)
+                start_num = int(match.group(2))
+                num_digits = len(match.group(2))
 
                 # Calculate the starting barcode number for this series
-            current_start_num = start_num + total_volumes_so_far
+                current_start_num = start_num + total_volumes_so_far
 
                 # Generate the starting barcode for this series
-            current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
+                current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
 
                 current_series["barcodes"] = generate_sequential_barcodes(
                     current_start_barcode,
