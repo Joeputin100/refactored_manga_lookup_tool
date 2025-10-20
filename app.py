@@ -314,7 +314,7 @@ def series_input_form():
     try:
         volumes = parse_volume_range(volume_range)
     except ValueError as e:
-        st.error(f"Error parsing volume range: {e}")
+        st.error(f"Error parsing volume range '{volume_range}': {e}")
         return
 
             volumes = parse_volume_range(volume_range)
