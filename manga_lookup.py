@@ -485,9 +485,19 @@ class DeepSeekAPI:
     """Handles DeepSeek API interactions with rate limiting and error handling"""
 
     def __init__(self):
-        self.api_key = os.getenv("DEEPSEEK_API_KEY")
+        # Try Streamlit secrets first (for Streamlit Cloud)
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'deepseek' in st.secrets:
+                self.api_key = st.secrets["deepseek"]["api_key"]
+            else:
+                self.api_key = os.getenv("DEEPSEEK_API_KEY")
+        except ImportError:
+            # Fallback to environment variables if streamlit is not available
+            self.api_key = os.getenv("DEEPSEEK_API_KEY")
+
         if not self.api_key:
-            msg = "DEEPSEEK_API_KEY not found in environment variables"
+            msg = "DEEPSEEK_API_KEY not found in environment variables or Streamlit secrets"
             raise ValueError(msg)
 
         self.base_url = "https://api.deepseek.com/v1/chat/completions"
@@ -1137,15 +1147,26 @@ class VertexAIAPI:
     """Handles Google Vertex AI API interactions for comprehensive manga data with Google Search grounding"""
 
     def __init__(self):
-        # Load credentials from secrets.toml file
+        # Load credentials from Streamlit secrets or environment variables
         try:
-            config = toml.load("secrets.toml")
-            gcp_config = config["vertex_ai"]
-            self.project_id = gcp_config["project_id"]
-            # Default location if not specified
-            self.location = gcp_config.get("location", "us-central1")
+            # Try Streamlit secrets first (for Streamlit Cloud)
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'vertex_ai' in st.secrets:
+                gcp_config = st.secrets["vertex_ai"]
+                self.project_id = gcp_config["project_id"]
+                self.location = gcp_config.get("location", "us-central1")
+            # Fallback to environment variables
+            elif os.getenv("VERTEX_AI_PROJECT_ID"):
+                self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+                self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+            # Fallback to secrets.toml file (for local development)
+            else:
+                config = toml.load("secrets.toml")
+                gcp_config = config["vertex_ai"]
+                self.project_id = gcp_config["project_id"]
+                self.location = gcp_config.get("location", "us-central1")
         except Exception as e:
-            raise ValueError(f"Error loading Vertex AI config from secrets.toml: {e}")
+            raise ValueError(f"Error loading Vertex AI config: {e}")
 
     def get_comprehensive_series_info(self, series_name: str, project_state: ProjectState | None = None) -> dict:
         """
