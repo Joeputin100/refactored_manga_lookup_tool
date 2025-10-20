@@ -460,8 +460,8 @@ class DeepSeekAPI:
         # Try Streamlit secrets first (for Streamlit Cloud)
         try:
             import streamlit as st
-            if hasattr(st, 'secrets') and 'deepseek' in st.secrets:
-                self.api_key = st.secrets["deepseek"]["api_key"]
+            if hasattr(st, 'secrets') and 'DEEPSEEK_API_KEY' in st.secrets:
+                self.api_key = st.secrets["DEEPSEEK_API_KEY"]
             else:
                 self.api_key = os.getenv("DEEPSEEK_API_KEY")
         except ImportError:
@@ -822,14 +822,25 @@ class VertexAIAPI:
     """Handles Google Vertex AI API interactions for comprehensive manga data using REST APIs"""
 
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        project_id = os.getenv("VERTEX_AI_PROJECT_ID")
-        location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
+                self.api_key = st.secrets["GEMINI_API_KEY"]
+                self.project_id = st.secrets["VERTEX_AI_PROJECT_ID"]
+                self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
+            else:
+                self.api_key = os.getenv("GEMINI_API_KEY")
+                self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+                self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+        except ImportError:
+            self.api_key = os.getenv("GEMINI_API_KEY")
+            self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+            self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
         
-        if not self.api_key or not project_id:
+        if not self.api_key or not self.project_id:
             raise ValueError("GEMINI_API_KEY and VERTEX_AI_PROJECT_ID must be set.")
             
-        self.base_url = f"https://{location}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/publishers/google/models/gemini-1.5-flash:generateContent"
+        self.base_url = f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/gemini-1.5-flash:generateContent"
 
     def _make_request(self, prompt: str) -> dict:
         """Makes a request to the Vertex AI REST API."""
