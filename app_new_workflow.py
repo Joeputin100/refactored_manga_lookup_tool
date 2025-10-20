@@ -458,13 +458,12 @@ def display_volume_input():
         key=f"volume_range_{st.session_state.current_series_index}"
     )
 
-    if st.button("Confirm Volumes"):
+            return
+        st.error("Please enter a volume range")
+        return
             if not volume_range:
             # Clean the input
             original_volume_range = volume_range
-            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
-            if volume_range != original_volume_range:
-                st.warning(f"Cleaned input from '{original_volume_range}' to '{volume_range}')
                 st.error("Please enter a volume range")
             return
     
