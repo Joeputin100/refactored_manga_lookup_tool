@@ -707,6 +707,8 @@ def display_volume_input():
             current_series["volume_range"] = volume_range
             current_series["volumes"] = volumes
             current_series["confirmed"] = True
+                if "series_info" in series:
+                    st.session_state.project_state.cache_series_info(series["selected_series"], series["series_info"])
 
             # Calculate barcodes for this series
             total_volumes_so_far = sum(len(entry["volumes"]) for entry in st.session_state.series_entries[:-1])
