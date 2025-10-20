@@ -713,7 +713,7 @@ def display_volume_input():
             current_start_num = start_num + total_volumes_so_far
 
                 # Generate the starting barcode for this series
-                current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
+            current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
 
                 current_series["barcodes"] = generate_sequential_barcodes(
                     current_start_barcode,
