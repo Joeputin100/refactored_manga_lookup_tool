@@ -640,7 +640,7 @@ def display_series_search():
                         st.write(f"**Authors:** {', '.join(result['authors'])}")
 
                     if result["volume_count"] > 0:
-                        st.write(f"**Volumes:** {result['volume_count']}")
+                        st.write(f"**Volumes:** {result.get('volume_count', 'Unknown')}")
 
                     # Show additional info if available
                     additional_info = result.get("additional_info", {})
