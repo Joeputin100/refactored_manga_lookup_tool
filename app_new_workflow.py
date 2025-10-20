@@ -59,7 +59,19 @@ def initialize_session_state():
             "start_time": None,
         }
     if "project_state" not in st.session_state:
-        st.session_state.project_state = ProjectState()
+        try:
+            # Try using /tmp/ directory for Streamlit Cloud compatibility
+            import tempfile
+            temp_db = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+            st.session_state.project_state = ProjectState(temp_db.name)
+        except Exception as e:
+            # Fallback to current directory if /tmp/ doesn't work
+            try:
+                st.session_state.project_state = ProjectState()
+            except Exception as e2:
+                # Final fallback - no database caching
+                st.warning(f"Database initialization failed: {e2}. Using in-memory cache.")
+                st.session_state.project_state = None
 
 
 def display_barcode_input():
@@ -158,32 +170,35 @@ def search_series_info(series_name: str):
     results = []
 
     # Check cache first for the original series name
-    try:
-        cached_info = st.session_state.project_state.get_cached_series_info(series_name)
-        if cached_info:
-            st.success(f"🎯 Using cached data for: {series_name}")
-            # Convert cached data to the expected format
-            results.append({
-                "name": cached_info.get("corrected_series_name", series_name),
-                "source": "Vertex AI (Cached)",
-                "authors": [cached_info.get("authors", "")] if cached_info.get("authors") else [],
-                "volume_count": cached_info.get("extant_volumes", 0),
-                "summary": cached_info.get("summary", ""),
-                "cover_url": cached_info.get("cover_image_url", None),
-                "additional_info": {
-                    "genres": [],
-                    "publisher": "",
-                    "status": "",
-                    "alternative_titles": cached_info.get("alternative_titles", []),
-                    "spin_offs": cached_info.get("spinoff_series", []),
-                    "adaptations": []
-                }
-            })
-            return results
-        else:
-            st.info(f"🔍 No cached data found for: {series_name}, making API call...")
-    except Exception as e:
-        st.warning(f"Cache check failed: {e}")
+    if st.session_state.project_state:
+        try:
+            cached_info = st.session_state.project_state.get_cached_series_info(series_name)
+            if cached_info:
+                st.success(f"🎯 Using cached data for: {series_name}")
+                # Convert cached data to the expected format
+                results.append({
+                    "name": cached_info.get("corrected_series_name", series_name),
+                    "source": "Vertex AI (Cached)",
+                    "authors": [cached_info.get("authors", "")] if cached_info.get("authors") else [],
+                    "volume_count": cached_info.get("extant_volumes", 0),
+                    "summary": cached_info.get("summary", ""),
+                    "cover_url": cached_info.get("cover_image_url", None),
+                    "additional_info": {
+                        "genres": [],
+                        "publisher": "",
+                        "status": "",
+                        "alternative_titles": cached_info.get("alternative_titles", []),
+                        "spin_offs": cached_info.get("spinoff_series", []),
+                        "adaptations": []
+                    }
+                })
+                return results
+            else:
+                st.info(f"🔍 No cached data found for: {series_name}, making API call...")
+        except Exception as e:
+            st.warning(f"Cache check failed: {e}")
+    else:
+        st.info(f"🔍 No database cache available, making API call for: {series_name}")
 
     # Debug: Check if Vertex AI is properly configured
     try:
@@ -197,7 +212,7 @@ def search_series_info(series_name: str):
     try:
         vertex_api = VertexAIAPI()
         suggestions = vertex_api.correct_series_name(series_name, st.session_state.project_state)
-        st.info(f"Vertex AI returned {len(suggestions)} suggestions")
+        st.info(f"✅ Vertex AI returned {len(suggestions)} suggestions")
         for suggestion in suggestions[:5]:  # Limit to 5 suggestions
             # Get comprehensive series information
             try:
@@ -224,7 +239,7 @@ def search_series_info(series_name: str):
                 })
             except Exception as detail_error:
                 # Use generic error message for users, log detailed error
-                st.warning("Sorry! An error occurred while fetching detailed series information.")
+                st.warning("⚠️ Error fetching detailed series information from Vertex AI.")
                 print(f"Vertex AI detailed lookup failed for '{suggestion}': {detail_error}")
                 # If detailed lookup fails, still add the suggestion
                 results.append({
@@ -237,8 +252,8 @@ def search_series_info(series_name: str):
                     "additional_info": {}
                 })
     except Exception as e:
-        # Use generic error message for users, log detailed error
-        st.error("Sorry! An error occurred while connecting to the series database.")
+        # Use specific error message for users, log detailed error
+        st.warning("⚠️ Vertex AI API not available - falling back to other sources.")
         print(f"Vertex AI API error: {e}")
         # Silently fail for Vertex AI - it's an enhancement
 
@@ -368,6 +383,42 @@ def fetch_cover_for_series(series_name: str) -> str | None:
         pass
 
     return None
+
+
+def display_series_input():
+    """Series name input for additional series"""
+    current_series = st.session_state.series_entries[
+        st.session_state.current_series_index
+    ]
+
+    st.header(f"Step 3: Add Series {st.session_state.current_series_index + 1}")
+
+    series_name = st.text_input(
+        "Series Name",
+        placeholder="e.g., Naruto, One Piece, Attack on Titan",
+        key=f"series_input_{st.session_state.current_series_index}"
+    )
+
+    if st.button("Confirm Series Name"):
+        if not series_name:
+            st.error("Please enter a series name")
+            return
+
+        # Validate series name length
+        if not validate_series_name(series_name):
+            st.error("Series name is too long. Maximum 255 characters allowed.")
+            return
+
+        # Sanitize series name
+        sanitized_name = sanitize_series_name(series_name)
+        if not sanitized_name:
+            st.error("Invalid series name format")
+            return
+
+        # Update the series entry with the name
+        current_series["name"] = sanitized_name
+        st.session_state.workflow_step = "series_search"
+        st.rerun()
 
 
 def display_series_search():
@@ -544,7 +595,7 @@ def display_series_confirmation():
                 "search_results": [],
                 "selected_series": None
             })
-            st.session_state.workflow_step = "series_search"
+            st.session_state.workflow_step = "series_input"
             st.rerun()
 
     with col2:
@@ -757,6 +808,8 @@ def main():
         display_barcode_input()
     elif st.session_state.workflow_step == "barcode_confirmation":
         display_barcode_confirmation()
+    elif st.session_state.workflow_step == "series_input":
+        display_series_input()
     elif st.session_state.workflow_step == "series_search":
         display_series_search()
     elif st.session_state.workflow_step == "volume_input":
