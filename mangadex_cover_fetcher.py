@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 import json
+import os
+import sqlite3
+import time
+
+import requests
 
 """
 MangaDex Cover Image Fetcher
@@ -7,12 +12,6 @@ MangaDex Cover Image Fetcher
 Uses MangaDex API to fetch manga cover images.
 Downloads and caches images locally.
 """
-
-import os
-import sqlite3
-import time
-
-import requests
 
 
 class MangaDexCoverFetcher:
@@ -44,7 +43,7 @@ class MangaDexCoverFetcher:
         }
 
         try:
-            response = requests.get(f"{self.base_url}/manga", params=params, timeout=10)
+            response = requests.get(f"{self.base_url}/manga", params=params, timeout=10, verify=True)
             response.raise_for_status()
 
             data = response.json()
@@ -67,7 +66,7 @@ class MangaDexCoverFetcher:
                     cover_id = rel["id"]
                     # Get the cover filename
                     self._rate_limit()
-                    cover_response = requests.get(f"{self.base_url}/cover/{cover_id}", timeout=10)
+                    cover_response = requests.get(f"{self.base_url}/cover/{cover_id}", timeout=10, verify=True)
                     cover_response.raise_for_status()
                     cover_data = cover_response.json()
                     filename = cover_data["data"]["attributes"]["fileName"]
@@ -77,30 +76,41 @@ class MangaDexCoverFetcher:
         return None
 
     def download_and_cache_image(self, image_url: str, series_name: str) -> str | None:
-        """Download image and cache locally"""
+        """Download image and cache locally with safe file path construction"""
         if not image_url:
             return None
 
         try:
             # Create cache directory
-            os.makedirs("cache/images", exist_ok=True)
+            cache_dir = "cache/images"
+            os.makedirs(cache_dir, exist_ok=True)
 
-            # Generate filename from series name
+            # Generate safe filename from series name
             safe_name = "".join(c for c in series_name if c.isalnum() or c in (" ", "-", "_")).rstrip()
             safe_name = safe_name.replace(" ", "_")
-            filename = f"{safe_name}_mangadex.jpg"
-            filepath = f"cache/images/{filename}"
+
+            # Prevent path traversal and ensure safe filename
+            safe_filename = f"{safe_name}_mangadex.jpg"
+            safe_filename = os.path.basename(safe_filename)  # Prevent path traversal
+
+            # Construct safe file path
+            safe_filepath = os.path.join(cache_dir, safe_filename)
+
+            # Additional safety check: ensure the path stays within cache directory
+            if not os.path.commonpath([os.path.abspath(cache_dir), os.path.abspath(safe_filepath)]) == os.path.abspath(cache_dir):
+                print(f"✗ Security violation detected in file path for '{series_name}'")
+                return None
 
             # Download image
-            img_response = requests.get(image_url, timeout=15)
+            img_response = requests.get(image_url, timeout=15, verify=True)
             img_response.raise_for_status()
 
             # Save to cache
-            with open(filepath, "wb") as f:
+            with open(safe_filepath, "wb") as f:
                 f.write(img_response.content)
 
             print(f"✓ Using direct image URL for '{series_name}'")
-            return f"/images/{filename}"
+            return f"/images/{safe_filename}"
 
         except Exception as e:
             print(f"✗ Error downloading image for '{series_name}': {e}")

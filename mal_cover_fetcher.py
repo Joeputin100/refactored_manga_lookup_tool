@@ -41,7 +41,7 @@ class MALCoverFetcher:
         }
 
         try:
-            response = requests.get(f"{self.base_url}/manga", params=params, timeout=10)
+            response = requests.get(f"{self.base_url}/manga", params=params, timeout=10, verify=True)
             response.raise_for_status()
 
             data = response.json()
@@ -62,7 +62,7 @@ class MALCoverFetcher:
             jpg_images = images.get("jpg", {})
             # Prefer large image, fallback to image_url
             return jpg_images.get("large_image_url") or jpg_images.get("image_url")
-        except:
+        except Exception:
             return None
 
     def download_and_cache_image(self, image_url: str, series_name: str) -> str | None:

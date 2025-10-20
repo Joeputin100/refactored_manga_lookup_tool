@@ -10,15 +10,17 @@ Redesigned workflow with step-by-step process:
 5. Results display with export options
 """
 
+import re
 import sys
-import requests
+import time
+from collections import defaultdict
 
 try:
     import streamlit as st
 except ImportError:
     sys.exit(1)
 
-import time
+import requests
 
 # Import existing core logic
 from manga_lookup import (
@@ -28,6 +30,9 @@ from manga_lookup import (
     ProjectState,
     generate_sequential_barcodes,
     parse_volume_range,
+    validate_barcode,
+    validate_series_name,
+    sanitize_series_name,
 )
 from marc_exporter import export_books_to_marc
 from mal_cover_fetcher import MALCoverFetcher
@@ -77,9 +82,9 @@ def display_barcode_input():
             st.error("Please enter a barcode number")
             return
 
-        # Validate barcode format (ASCII only, ending in number)
-        if not barcode_input[-1].isdigit():
-            st.error("Barcode must end with a number")
+        # Validate barcode format using enhanced validation
+        if not validate_barcode(barcode_input):
+            st.error("Invalid barcode format. Barcode must be 1-20 alphanumeric characters, ending with a number, and may contain hyphens.")
             return
 
         st.session_state.start_barcode = barcode_input
@@ -122,9 +127,20 @@ def display_barcode_confirmation():
             st.error("Please enter a series name")
             return
 
+        # Validate series name length
+        if not validate_series_name(series_name):
+            st.error("Series name is too long. Maximum 255 characters allowed.")
+            return
+
+        # Sanitize series name
+        sanitized_name = sanitize_series_name(series_name)
+        if not sanitized_name:
+            st.error("Invalid series name format")
+            return
+
         # Add first series entry
         st.session_state.series_entries.append({
-            "name": series_name,
+            "name": sanitized_name,
             "volume_range": "",
             "volumes": [],
             "start_barcode": st.session_state.start_barcode,
@@ -145,7 +161,7 @@ def search_series_info(series_name: str):
     try:
         cached_info = st.session_state.project_state.get_cached_series_info(series_name)
         if cached_info:
-            st.success(f"Using cached data for: {series_name}")
+            st.success(f"🎯 Using cached data for: {series_name}")
             # Convert cached data to the expected format
             results.append({
                 "name": cached_info.get("corrected_series_name", series_name),
@@ -164,8 +180,18 @@ def search_series_info(series_name: str):
                 }
             })
             return results
+        else:
+            st.info(f"🔍 No cached data found for: {series_name}, making API call...")
     except Exception as e:
         st.warning(f"Cache check failed: {e}")
+
+    # Debug: Check if Vertex AI is properly configured
+    try:
+        vertex_api = VertexAIAPI()
+        st.info(f"✅ Vertex AI API initialized successfully for: {series_name}")
+    except Exception as e:
+        st.error(f"❌ Vertex AI initialization failed: {e}")
+        st.info("Falling back to DeepSeek API...")
 
     # Try Vertex AI first (most authoritative)
     try:
@@ -176,23 +202,30 @@ def search_series_info(series_name: str):
             # Get comprehensive series information
             try:
                 series_info = vertex_api.get_comprehensive_series_info(suggestion, st.session_state.project_state)
+
+                # Cache the series info for future use
+                st.session_state.project_state.cache_series_info(suggestion, series_info)
+
                 results.append({
                     "name": suggestion,
                     "source": "Vertex AI",
-                    "authors": series_info.get("authors", []),
-                    "volume_count": series_info.get("number_of_extant_volumes", 0),
-                    "summary": series_info.get("description", ""),
-                    "cover_url": None,  # Vertex AI doesn't provide covers
+                    "authors": [series_info.get("authors", "")] if series_info.get("authors") else [],
+                    "volume_count": series_info.get("extant_volumes", 0),
+                    "summary": series_info.get("summary", ""),
+                    "cover_url": series_info.get("cover_image_url", None),
                     "additional_info": {
-                        "genres": series_info.get("genres", []),
-                        "publisher": series_info.get("publisher", ""),
-                        "status": series_info.get("status", ""),
+                        "genres": [],
+                        "publisher": "",
+                        "status": "",
                         "alternative_titles": series_info.get("alternative_titles", []),
-                        "spin_offs": series_info.get("spin_offs", []),
-                        "adaptations": series_info.get("adaptations", [])
+                        "spin_offs": series_info.get("spinoff_series", []),
+                        "adaptations": []
                     }
                 })
             except Exception as detail_error:
+                # Use generic error message for users, log detailed error
+                st.warning("Sorry! An error occurred while fetching detailed series information.")
+                print(f"Vertex AI detailed lookup failed for '{suggestion}': {detail_error}")
                 # If detailed lookup fails, still add the suggestion
                 results.append({
                     "name": suggestion,
@@ -204,8 +237,10 @@ def search_series_info(series_name: str):
                     "additional_info": {}
                 })
     except Exception as e:
+        # Use generic error message for users, log detailed error
+        st.error("Sorry! An error occurred while connecting to the series database.")
+        print(f"Vertex AI API error: {e}")
         # Silently fail for Vertex AI - it's an enhancement
-        pass
 
     # Try DeepSeek API second
     try:
@@ -244,7 +279,7 @@ def search_series_info(series_name: str):
                         "cover_url": None,
                         "additional_info": {}
                     })
-            except Exception as detail_error:
+            except Exception:
                 # If detailed lookup fails, still add the suggestion
                 results.append({
                     "name": suggestion,
@@ -256,7 +291,9 @@ def search_series_info(series_name: str):
                     "additional_info": {}
                 })
     except Exception as e:
-        st.error(f"DeepSeek API error: {e}")
+        # Use generic error message for users, log detailed error
+        st.error("Sorry! An error occurred while searching for series information.")
+        print(f"DeepSeek API error: {e}")
 
     # Try Google Books for additional series information
     try:
@@ -265,7 +302,7 @@ def search_series_info(series_name: str):
         search_query = f"{series_name} 1"
         url = f"{google_api.base_url}?q={search_query}&maxResults=5"
 
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=10, verify=True)
         response.raise_for_status()
         data = response.json()
 
@@ -298,6 +335,8 @@ def search_series_info(series_name: str):
                         }
                     })
     except Exception as e:
+        # Use generic error message for users, log detailed error
+        print(f"Google Books API error: {e}")
         # Silently fail for Google Books - it's just an enhancement
         pass
 
@@ -441,11 +480,37 @@ def display_volume_input():
 
             # Calculate barcodes for this series
             total_volumes_so_far = sum(len(entry["volumes"]) for entry in st.session_state.series_entries[:-1])
-            start_barcode_num = int(st.session_state.start_barcode.rstrip('0123456789')) + total_volumes_so_far
-            current_series["barcodes"] = generate_sequential_barcodes(
-                st.session_state.start_barcode.replace(st.session_state.start_barcode.rstrip('0123456789'), str(start_barcode_num)),
-                len(volumes)
-            )
+
+            # Extract the numeric part from the starting barcode
+            match = re.match(r"([A-Za-z]*)(\d+)", st.session_state.start_barcode)
+            if match:
+                prefix = match.group(1) or ""
+                start_num = int(match.group(2))
+                num_digits = len(match.group(2))
+
+                # Calculate the starting barcode number for this series
+                current_start_num = start_num + total_volumes_so_far
+
+                # Generate the starting barcode for this series
+                current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
+
+                current_series["barcodes"] = generate_sequential_barcodes(
+                    current_start_barcode,
+                    len(volumes)
+                )
+            else:
+                # Fallback: use the original logic but with proper numeric extraction
+                numeric_part = ''.join(c for c in st.session_state.start_barcode if c.isdigit())
+                if numeric_part:
+                    start_num = int(numeric_part)
+                    current_start_num = start_num + total_volumes_so_far
+                    current_start_barcode = st.session_state.start_barcode.replace(numeric_part, str(current_start_num).zfill(len(numeric_part)))
+                    current_series["barcodes"] = generate_sequential_barcodes(
+                        current_start_barcode,
+                        len(volumes)
+                    )
+                else:
+                    raise ValueError(f"Invalid barcode format: {st.session_state.start_barcode}")
 
             st.session_state.workflow_step = "series_confirmation"
             st.rerun()
@@ -571,7 +636,6 @@ def display_results():
         return
 
     # Group books by series
-    from collections import defaultdict
     series_groups = defaultdict(list)
     for book in st.session_state.all_books:
         series_groups[book.series_name].append(book)
@@ -666,7 +730,9 @@ def display_results():
                     mime="application/marc",
                 )
             except Exception as e:
-                st.error(f"Error exporting MARC: {e!s}")
+                # Use generic error message for users, log detailed error
+                st.error("Sorry! An error occurred while exporting the file.")
+                print(f"Error exporting MARC: {e!s}")
 
     with col2:
         if st.button("Generate Labels"):

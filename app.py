@@ -17,7 +17,6 @@ try:
 except ImportError:
     sys.exit(1)
 
-import html
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 

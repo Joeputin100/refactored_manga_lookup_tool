@@ -4,12 +4,20 @@ import os
 import re
 import sqlite3
 import time
+import toml
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import List
 
 import requests
 from dotenv import load_dotenv
+from google.cloud import aiplatform
+from pydantic import BaseModel, Field
 from rich import print as rprint
+from vertexai.generative_models import (
+    GenerativeModel,
+    Tool,
+)
 
 # Load environment variables
 load_dotenv()
@@ -50,6 +58,24 @@ class ProjectState:
         self.conn = sqlite3.connect(self.db_file, check_same_thread=False)
         self._create_tables()
         self._ensure_metadata()
+
+    def close(self):
+        """Close database connection to prevent resource leaks"""
+        if hasattr(self, 'conn') and self.conn:
+            self.conn.close()
+            self.conn = None
+
+    def __del__(self):
+        """Destructor to ensure database connection is closed"""
+        self.close()
+
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - close connection"""
+        self.close()
 
     def _create_tables(self):
         """Create database tables if they don't exist"""
@@ -111,6 +137,20 @@ class ProjectState:
             CREATE TABLE IF NOT EXISTS cached_series_info (
                 series_name TEXT PRIMARY KEY,
                 series_info TEXT,
+                timestamp TEXT
+            )
+        """,
+        )
+
+        # API usage tracking table
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS api_usage (
+                id INTEGER PRIMARY KEY,
+                api_name TEXT,
+                endpoint TEXT,
+                tokens_used INTEGER,
+                cost_estimate REAL,
                 timestamp TEXT
             )
         """,
@@ -277,6 +317,7 @@ class ProjectState:
             VALUES (?, ?, ?)
         """, (series_name, json.dumps(series_info), datetime.now(UTC).isoformat()))
         self.conn.commit()
+        print(f"💾 Cached series info for: {series_name}")
 
     def get_cached_series_info(self, series_name: str) -> dict | None:
         """Get cached series information if available (permanent cache)"""
@@ -288,8 +329,102 @@ class ProjectState:
 
         result = cursor.fetchone()
         if result:
+            print(f"🎯 Cache HIT for series: {series_name}")
             return json.loads(result[0])
+        else:
+            print(f"❌ Cache MISS for series: {series_name}")
         return None
+
+    def track_api_usage(self, api_name: str, endpoint: str, tokens_used: int = 0):
+        """Track API usage and estimate costs"""
+        cursor = self.conn.cursor()
+        timestamp = datetime.now(UTC).isoformat()
+
+        # Cost estimates per 1K tokens (approximate rates as of 2024)
+        cost_rates = {
+            "deepseek": 0.00014,  # $0.14 per 1K tokens
+            "vertex_ai": 0.00035,  # $0.35 per 1K tokens
+            "google_books": 0.0,   # Free API
+            "mal": 0.0,           # Free API
+            "mangadex": 0.0       # Free API
+        }
+
+        cost_estimate = (tokens_used / 1000) * cost_rates.get(api_name.lower(), 0.0)
+
+        cursor.execute("""
+            INSERT INTO api_usage (api_name, endpoint, tokens_used, cost_estimate, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        """, (api_name, endpoint, tokens_used, cost_estimate, timestamp))
+
+        self.conn.commit()
+
+    def generate_cost_report(self) -> dict:
+        """Generate API usage and cost report (for internal monitoring)"""
+        cursor = self.conn.cursor()
+
+        # Get total usage by API
+        cursor.execute("""
+            SELECT
+                api_name,
+                COUNT(*) as call_count,
+                SUM(tokens_used) as total_tokens,
+                SUM(cost_estimate) as total_cost
+            FROM api_usage
+            GROUP BY api_name
+        """)
+
+        api_summary = {}
+        total_cost = 0.0
+        total_calls = 0
+
+        for row in cursor.fetchall():
+            api_name, call_count, total_tokens, api_cost = row
+            api_summary[api_name] = {
+                "calls": call_count,
+                "tokens": total_tokens,
+                "cost": api_cost
+            }
+            total_cost += api_cost
+            total_calls += call_count
+
+        # Get recent usage (last 30 days)
+        cursor.execute("""
+            SELECT
+                api_name,
+                COUNT(*) as call_count,
+                SUM(tokens_used) as total_tokens,
+                SUM(cost_estimate) as total_cost
+            FROM api_usage
+            WHERE timestamp >= datetime('now', '-30 days')
+            GROUP BY api_name
+        """)
+
+        recent_summary = {}
+        recent_cost = 0.0
+        recent_calls = 0
+
+        for row in cursor.fetchall():
+            api_name, call_count, total_tokens, api_cost = row
+            recent_summary[api_name] = {
+                "calls": call_count,
+                "tokens": total_tokens,
+                "cost": api_cost
+            }
+            recent_cost += api_cost
+            recent_calls += call_count
+
+        return {
+            "total": {
+                "calls": total_calls,
+                "cost": total_cost
+            },
+            "recent_30_days": {
+                "calls": recent_calls,
+                "cost": recent_cost
+            },
+            "api_breakdown": api_summary,
+            "recent_breakdown": recent_summary
+        }
 
 
 class DataValidator:
@@ -405,6 +540,7 @@ class DeepSeekAPI:
                 headers=headers,
                 json=payload,
                 timeout=60,
+                verify=True,  # Enable SSL verification
             )
             response.raise_for_status()
 
@@ -444,8 +580,15 @@ class DeepSeekAPI:
         series_name: str,
         volume_number: int,
         project_state: ProjectState,
+        retry_count: int = 0,
     ) -> dict | None:
         """Get comprehensive book information using DeepSeek API"""
+
+        # Maximum retry limit to prevent infinite recursion
+        MAX_RETRIES = 3
+        if retry_count >= MAX_RETRIES:
+            rprint(f"[red]❌ Maximum retry limit ({MAX_RETRIES}) reached for volume {volume_number}. Giving up.[/red]")
+            return None
 
         # Create comprehensive prompt
         prompt = self._create_comprehensive_prompt(series_name, volume_number)
@@ -460,7 +603,10 @@ class DeepSeekAPI:
                 rprint("[yellow]⚠️ Cached data corrupted, fetching fresh data[/yellow]")
 
         # If we get here, we need to make a new API call
-        rprint(f"[blue]🔍 Making API call for volume {volume_number}[/blue]")
+        if retry_count > 0:
+            rprint(f"[yellow]🔄 Retry {retry_count}/{MAX_RETRIES} for volume {volume_number}[/yellow]")
+        else:
+            rprint(f"[blue]🔍 Making API call for volume {volume_number}[/blue]")
 
         headers = {
             "Content-Type": "application/json",
@@ -480,6 +626,7 @@ class DeepSeekAPI:
                 headers=headers,
                 json=payload,
                 timeout=120,
+                verify=True,  # Enable SSL verification
             )
             response.raise_for_status()
 
@@ -513,14 +660,50 @@ class DeepSeekAPI:
             # Record successful API call
             project_state.record_api_call(prompt, content, volume_number, success=True)
 
+            # Track API usage with token estimation
+            # Estimate tokens: prompt + response (rough approximation)
+            estimated_tokens = len(prompt.split()) + len(content.split())
+            project_state.track_api_usage("deepseek", "chat/completions", estimated_tokens)
+
         except requests.exceptions.HTTPError as e:
-            if e.response and e.response.status_code == HTTP_STATUS_TOO_MANY_REQUESTS:
-                rprint(
-                    f"[yellow]Rate limit exceeded for volume {volume_number}, waiting 5 seconds...[/yellow]",
-                )
-                time.sleep(5)
-                return self.get_book_info(series_name, volume_number, project_state)
-            rprint(f"[red]HTTP error for volume {volume_number}: {e}[/red]")
+            if e.response:
+                status_code = e.response.status_code
+                if status_code == HTTP_STATUS_TOO_MANY_REQUESTS:
+                    rprint(
+                        f"[yellow]Rate limit exceeded for volume {volume_number}, waiting 10 seconds...[/yellow]",
+                    )
+                    time.sleep(10)
+                    return self.get_book_info(series_name, volume_number, project_state, retry_count + 1)
+                elif status_code == 400:
+                    rprint(f"[red]Bad request for volume {volume_number}: {e}[/red]")
+                    # Check for context window limitations
+                    error_text = str(e.response.text).lower()
+                    if "context" in error_text or "token" in error_text:
+                        rprint("[red]Context window limitation detected. Try reducing prompt length.[/red]")
+                elif status_code == 401:
+                    rprint(f"[red]Authentication failed for volume {volume_number}. Check API key.[/red]")
+                elif status_code == 402:
+                    rprint(f"[red]Payment required for volume {volume_number}. Check account balance.[/red]")
+                elif status_code == 429:
+                    rprint(f"[yellow]Rate limit exceeded for volume {volume_number}, waiting 15 seconds...[/yellow]")
+                    time.sleep(15)
+                    return self.get_book_info(series_name, volume_number, project_state, retry_count + 1)
+                elif status_code >= 500:
+                    rprint(f"[yellow]Server error for volume {volume_number}, waiting 5 seconds...[/yellow]")
+                    time.sleep(5)
+                    return self.get_book_info(series_name, volume_number, project_state, retry_count + 1)
+                else:
+                    rprint(f"[red]HTTP error {status_code} for volume {volume_number}: {e}[/red]")
+            else:
+                rprint(f"[red]HTTP error for volume {volume_number}: {e}[/red]")
+        except requests.exceptions.ConnectionError:
+            rprint(f"[yellow]Connection error for volume {volume_number}, waiting 10 seconds...[/yellow]")
+            time.sleep(10)
+            return self.get_book_info(series_name, volume_number, project_state, retry_count + 1)
+        except requests.exceptions.Timeout:
+            rprint(f"[yellow]Timeout for volume {volume_number}, waiting 5 seconds...[/yellow]")
+            time.sleep(5)
+            return self.get_book_info(series_name, volume_number, project_state, retry_count + 1)
         except OSError as e:
             rprint(f"[red]Error fetching data for volume {volume_number}: {e}[/red]")
             return None
@@ -588,7 +771,7 @@ class GoogleBooksAPI:
 
         try:
             # Make the keyless HTTP request
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=10, verify=True)
             response.raise_for_status()
             data = response.json()
 
@@ -629,7 +812,7 @@ class GoogleBooksAPI:
         url = f"{self.base_url}?q={query}&maxResults=40&orderBy=relevance"
 
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=10, verify=True)
             response.raise_for_status()
             data = response.json()
 
@@ -713,6 +896,7 @@ class VertexAIClient:
                 headers=headers,
                 json=payload,
                 timeout=60,
+                verify=True,  # Enable SSL verification
             )
             response.raise_for_status()
 
@@ -739,6 +923,111 @@ class VertexAIClient:
             return [series_name]  # Fallback to original name
         else:
             return suggestions
+
+
+def validate_barcode(barcode: str) -> bool:
+    """
+    Validate barcode format according to library standards.
+    Based on MARC21 field 852 subfield p and common library practices.
+
+    Requirements:
+    - Alphanumeric characters only (A-Z, a-z, 0-9)
+    - Maximum length: 20 characters (MARC21 field 852 subfield p)
+    - Minimum length: 1 character
+    - Must end with a digit
+    - No special characters except hyphens
+    """
+    if not barcode:
+        return False
+
+    # Check length
+    if len(barcode) > 20 or len(barcode) < 1:
+        return False
+
+    # Check if ends with digit
+    if not barcode[-1].isdigit():
+        return False
+
+    # Check for valid characters (alphanumeric and hyphens only)
+    if not re.match(r'^[A-Za-z0-9\-]+$', barcode):
+        return False
+
+    return True
+
+
+def validate_series_name(name: str) -> bool:
+    """
+    Validate series name according to MARC21 field 245 standards.
+
+    MARC21 field 245 (Title Statement) allows up to 255 characters,
+    but we'll use a more practical limit for display purposes.
+    """
+    if not name:
+        return False
+
+    # MARC21 field 245 allows up to 255 characters
+    if len(name) > 255:
+        return False
+
+    # Check for minimum reasonable length
+    if len(name) < 1:
+        return False
+
+    return True
+
+
+def sanitize_series_name(name: str) -> str:
+    """
+    Sanitize series name according to library cataloging standards.
+    Based on MARC21 field 245 and common library practices.
+
+    Removes or escapes special characters that could cause issues
+    in library systems or database operations.
+    """
+    if not name:
+        return ""
+
+    # Remove or replace problematic characters
+    # Allow: letters, numbers, spaces, hyphens, parentheses, colons
+    # Remove: other special characters that could cause SQL injection or display issues
+    sanitized = re.sub(r'[^\w\s\-\(\)\:]+', '', name)
+
+    # Limit length to MARC21 field 245 maximum (255 characters)
+    sanitized = sanitized[:255]
+
+    return sanitized.strip()
+
+
+def validate_author_name(name: str) -> bool:
+    """
+    Validate author name according to MARC21 field 100 standards.
+
+    MARC21 field 100 (Main Entry - Personal Name) allows up to 255 characters.
+    """
+    if not name:
+        return False
+
+    # MARC21 field 100 allows up to 255 characters
+    if len(name) > 255:
+        return False
+
+    return True
+
+
+def validate_description(text: str) -> bool:
+    """
+    Validate description text according to MARC21 field 520 standards.
+
+    MARC21 field 520 (Summary, etc.) allows up to 5000 characters.
+    """
+    if not text:
+        return True  # Empty descriptions are allowed
+
+    # MARC21 field 520 allows up to 5000 characters
+    if len(text) > 5000:
+        return False
+
+    return True
 
 
 def parse_volume_range(volume_input: str) -> list[int]:
@@ -819,17 +1108,6 @@ def generate_sequential_barcodes(start_barcode: str, count: int) -> list[str]:
     return barcodes
 
 
-import toml
-import json
-from google.cloud import aiplatform
-from vertexai.generative_models import (
-    GenerativeModel,
-    Tool,
-)
-from pydantic import BaseModel, Field
-from typing import List
-
-
 # ----------------------------------------------------------------------
 # Define the desired JSON output structure using Pydantic
 # ----------------------------------------------------------------------
@@ -863,7 +1141,8 @@ class VertexAIAPI:
             config = toml.load("secrets.toml")
             gcp_config = config["vertex_ai"]
             self.project_id = gcp_config["project_id"]
-            self.location = gcp_config["location"]
+            # Default location if not specified
+            self.location = gcp_config.get("location", "us-central1")
         except Exception as e:
             raise ValueError(f"Error loading Vertex AI config from secrets.toml: {e}")
 
@@ -940,9 +1219,14 @@ class VertexAIAPI:
             if project_state:
                 project_state.cache_series_info(series_name, manga_data)
 
+            # Track API usage with token estimation
+            # Vertex AI Gemini models typically use fewer tokens than DeepSeek
+            estimated_tokens = len(prompt.split()) * 2  # Rough estimation
+            project_state.track_api_usage("vertex_ai", "generateContent", estimated_tokens)
+
             return manga_data
 
-        except Exception as e:
+        except Exception:
             # If Vertex AI fails, return minimal data
             return {
                 "corrected_series_name": series_name,
