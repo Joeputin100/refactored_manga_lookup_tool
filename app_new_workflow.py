@@ -67,45 +67,151 @@ class SessionStateCache:
 
 
 def initialize_precached_data():
-    """Initialize pre-cached data for popular manga series"""
-    # List of popular manga series to pre-cache
-    popular_series = [
-        "One Piece", "Naruto", "Dragon Ball", "Attack on Titan", "My Hero Academia",
-        "Demon Slayer", "Death Note", "Fullmetal Alchemist", "Bleach", "Hunter x Hunter",
-        "Tokyo Ghoul", "One-Punch Man", "Fairy Tail", "Black Clover", "Jujutsu Kaisen",
-        "Chainsaw Man", "Spy x Family", "Haikyuu!!", "JoJo's Bizarre Adventure", "Berserk",
-        "Vinland Saga", "Kingdom", "Slam Dunk", "The Promised Neverland", "Mob Psycho 100",
-        "Dr. Stone", "Fire Force", "Blue Lock", "Kaguya-sama: Love Is War", "That Time I Got Reincarnated as a Slime"
-    ]
+    """Initialize comprehensive pre-cached data for specified manga series"""
 
-    # Pre-cache basic series info (volume counts and basic metadata)
-    for series in popular_series:
-        # Create basic cached data structure
+    # All series with basic volume counts
+    series_volume_counts = {
+        # Attack on Titan universe
+        "Attack on Titan": 34,
+        "Attack on Titan: Colossal Edition": 6,
+        "Attack on Titan: No Regrets": 2,
+        "Attack on Titan: Before the Fall": 17,
+
+        # One Piece
+        "One Piece": 105,
+
+        # Tokyo Ghoul universe
+        "Tokyo Ghoul": 14,
+        "Tokyo Ghoul: re": 16,
+
+        # Bakuman
+        "Bakuman": 20,
+
+        # Hikaru no Go
+        "Hikaru no Go": 23,
+
+        # Tegami Bachi
+        "Tegami Bachi": 20,
+
+        # Naruto universe
+        "Naruto": 72,
+        "Boruto: Naruto Next Generation": 20,
+        "Boruto: Two Blue Vortex": 4,
+
+        # Dragon Ball
+        "Dragon Ball Z": 26,
+
+        # Psychological/Drama
+        "Flowers of Evil": 11,
+        "Goodnight Punpun": 13,
+        "Happiness": 10,
+        "All You Need is Kill": 2,
+
+        # Berserk
+        "Berserk": 41,
+
+        # Modern hits
+        "Tokyo Revengers": 31,
+        "To Your Eternity": 20,
+
+        # Sports
+        "Haikyuu!": 45,
+
+        # Fairy Tail
+        "Fairy Tail": 63,
+
+        # Assassination Classroom
+        "Assassination Classroom": 21,
+
+        # Cells at Work
+        "Cells at Work": 6,
+
+        # Akira
+        "Akira": 6,
+
+        # Gigant
+        "Gigant": 10,
+
+        # Inuyasha universe
+        "Inuyasha": 56,
+        "Inuyashiki": 10,
+
+        # Gantz universe
+        "Gantz": 37,
+        "Gantz G": 3,
+
+        # Alive
+        "Alive": 21,
+
+        # Orange
+        "Orange": 5,
+
+        # Welcome Back Alice
+        "Welcome Back Alice": 10,
+
+        # Barefoot Gen
+        "Barefoot Gen": 10,
+
+        # Platinum End
+        "Platinum End": 14,
+
+        # Death Note
+        "Death Note": 12,
+
+        # Magus of the Library
+        "Magus of the Library": 7,
+
+        # Spy x Family
+        "Spy x Family": 12,
+
+        # Hunter x Hunter
+        "Hunter x Hunter": 36,
+
+        # Samurai 8
+        "Samurai 8": 5,
+
+        # Thunder3
+        "Thunder3": 10,
+
+        # Tokyo Alien Bros.
+        "Tokyo Alien Bros.": 8,
+
+        # Centaur
+        "Centaur": 6,
+
+        # Blue Note
+        "Blue Note": 4,
+
+        # Children of Whales
+        "Children of Whales": 23,
+
+        # Bleach
+        "Bleach": 74,
+
+        # Crayon Shinchan
+        "Crayon Shinchan": 50,
+
+        # A Polar Bear in Love
+        "A Polar Bear in Love": 5,
+
+        # Sho-ha Shoten
+        "Sho-ha Shoten": 8,
+
+        # O Parts Hunter
+        "O Parts Hunter": 19
+    }
+
+    # Pre-cache all series with basic info
+    for series, volume_count in series_volume_counts.items():
         cached_info = {
             "corrected_series_name": series,
             "authors": [],  # Will be populated by APIs
-            "extant_volumes": 0,  # Will be populated by APIs
+            "extant_volumes": volume_count,
             "summary": "",  # Will be populated by APIs
             "cover_image_url": None,  # Will be populated by APIs
             "alternative_titles": [],
             "spinoff_series": []
         }
-
-        # Set default volume counts for popular series
-        volume_counts = {
-            "One Piece": 100, "Naruto": 72, "Dragon Ball": 42, "Attack on Titan": 34,
-            "My Hero Academia": 38, "Demon Slayer": 23, "Death Note": 12, "Fullmetal Alchemist": 27,
-            "Bleach": 74, "Hunter x Hunter": 36, "Tokyo Ghoul": 14, "One-Punch Man": 28,
-            "Fairy Tail": 63, "Black Clover": 35, "Jujutsu Kaisen": 25, "Chainsaw Man": 15,
-            "Spy x Family": 12, "Haikyuu!!": 45, "JoJo's Bizarre Adventure": 130,
-            "Berserk": 41, "Vinland Saga": 27, "Kingdom": 70, "Slam Dunk": 31,
-            "The Promised Neverland": 20, "Mob Psycho 100": 16, "Dr. Stone": 26,
-            "Fire Force": 34, "Blue Lock": 28, "Kaguya-sama: Love Is War": 28,
-            "That Time I Got Reincarnated as a Slime": 22
-        }
-
-        if series in volume_counts:
-            cached_info["extant_volumes"] = volume_counts[series]
 
         # Cache the series info
         try:
