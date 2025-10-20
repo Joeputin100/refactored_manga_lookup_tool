@@ -707,7 +707,7 @@ def display_volume_input():
             current_series["volume_range"] = volume_range
             current_series["volumes"] = volumes
             current_series["confirmed"] = True
-                num_digits = len(match.group(2))
+        num_digits = len(match.group(2))
 
                 # Calculate the starting barcode number for this series
                 current_start_num = start_num + total_volumes_so_far
