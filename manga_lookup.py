@@ -1397,11 +1397,6 @@ def process_book_data(
         warnings=warnings,
         cover_image_url=cover_image_url,
     )
-def generate_book_info(book: BookInfo, project_state: ProjectState) -> dict | None:
-    series_name = book.series_name
-    volume_number = book.volume
-    return {
-        "title": f"{series_name} Volume {volume_number}",
         "authors": ["Unknown"],
         "description": "Generated book info",
         "isbn": "",
@@ -1411,3 +1406,51 @@ def generate_book_info(book: BookInfo, project_state: ProjectState) -> dict | No
         "language": "en",
         "cover_image_url": ""
     }
+def generate_book_info(book: BookInfo, project_state: ProjectState) -> dict | None:
+    series_name = book.series_name
+    volume_number = book.volume
+    series_info = project_state.get_cached_series_info(series_name)
+    if not series_info:
+        return None
+    prompt = f"""Generate detailed book information for "{series_name}" volume {volume_number}.
+
+Series information: {json.dumps(series_info)}
+
+Return the result as a valid JSON object with the following structure:
+
+{{
+    "title": "Book Title",
+    "authors": ["Author1", "Author2"],
+    "description": "Book description",
+    "isbn": "ISBN if available",
+    "publisher": "Publisher",
+    "publication_date": "Publication date",
+    "page_count": 200,
+    "language": "Language",
+    "cover_image_url": "URL if available"
+}}
+
+Ensure the JSON is valid and contains all the keys."""
+    # Check cache
+    cached = project_state.get_cached_response(prompt, volume_number)
+    if cached:
+        try:
+            return json.loads(cached)
+        except:
+            pass
+    # Generate
+    try:
+        response = vertex_ai_client.generate_book_description(prompt)
+        parsed = json.loads(response)
+        project_state.cache_response(prompt, volume_number, json.dumps(parsed))
+        return parsed
+    except Exception as e:
+        print(f"Vertex AI failed: {e}")
+        try:
+            response = deepseek_client.generate_book_description(prompt)
+            parsed = json.loads(response)
+            project_state.cache_response(prompt, volume_number, json.dumps(parsed))
+            return parsed
+        except Exception as e2:
+            print(f"DeepSeek failed: {e2}")
+            return None
