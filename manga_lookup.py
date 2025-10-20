@@ -236,16 +236,8 @@ class ProjectState:
 
     def get_cached_response(self, prompt: str, volume: int) -> str | None:
         """Get cached response if available"""
-        cursor = self.conn.cursor()
-        prompt_hash = f"{prompt[:100]}_{volume}"
-        cursor.execute(
-            "SELECT response FROM cached_responses WHERE prompt_hash = ? AND volume = ?",
-            (prompt_hash, volume),
-        )
-        row = cursor.fetchone()
-        return row[0] if row else None
-
-    def record_interaction(self, search_query: str, books_found: int):
+        # Always return None to disable caching
+        return None
         """Record a new user interaction"""
         cursor = self.conn.cursor()
         timestamp = datetime.now(UTC).isoformat()
@@ -265,15 +257,8 @@ class ProjectState:
 
     def get_cached_cover_image(self, isbn_key: str) -> str | None:
         """Get cached cover image URL by ISBN key"""
-        cursor = self.conn.cursor()
-        cursor.execute(
-            "SELECT url FROM cached_cover_images WHERE isbn = ?",
-            (isbn_key,),
-        )
-        row = cursor.fetchone()
-        return row[0] if row else None
-
-    def cache_cover_image(self, isbn_key: str, url: str):
+        # Always return None to disable caching
+        return None
         """Cache a cover image URL"""
         cursor = self.conn.cursor()
         timestamp = datetime.now(UTC).isoformat()
@@ -322,21 +307,8 @@ class ProjectState:
 
     def get_cached_series_info(self, series_name: str) -> dict | None:
         """Get cached series information if available (permanent cache)"""
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT series_info FROM cached_series_info
-            WHERE LOWER(series_name) = LOWER(?)
-        """, (series_name,))
-
-        result = cursor.fetchone()
-        if result:
-            print(f"🎯 Cache HIT for series: {series_name}")
-            return json.loads(result[0])
-        else:
-            print(f"❌ Cache MISS for series: {series_name}")
+        # Always return None to disable caching
         return None
-
-    def track_api_usage(self, api_name: str, endpoint: str, tokens_used: int = 0):
         """Track API usage and estimate costs"""
         cursor = self.conn.cursor()
         timestamp = datetime.now(UTC).isoformat()

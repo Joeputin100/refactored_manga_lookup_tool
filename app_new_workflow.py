@@ -51,7 +51,8 @@ class SessionStateCache:
 
     def get_cached_series_info(self, series_name: str):
         """Get cached series information"""
-        return st.session_state.cache_series_info.get(series_name)
+        # Always return None to disable caching
+        return None
 
     def cache_series_info(self, series_name: str, series_info: dict):
         """Cache series information"""
@@ -59,7 +60,8 @@ class SessionStateCache:
 
     def get_cached_cover_image(self, key: str):
         """Get cached cover image URL"""
-        return st.session_state.cache_cover_images.get(key)
+        # Always return None to disable caching
+        return None
 
     def cache_cover_image(self, key: str, url: str):
         """Cache cover image URL"""
