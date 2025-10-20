@@ -3,8 +3,10 @@ import json
 import os
 from manga_lookup import VertexAIAPI, ProjectState
 
-# Load secrets from the project root
-secrets_path = os.path.join(os.path.dirname(__file__), 'secrets.toml')
+# Get the absolute path to the directory containing this script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+secrets_path = os.path.join(script_dir, 'secrets.toml')
+
 try:
     with open(secrets_path, 'r') as f:
         for line in f:
