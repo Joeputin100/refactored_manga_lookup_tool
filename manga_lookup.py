@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 import json
 import os
 import re
@@ -570,7 +571,7 @@ class DeepSeekAPI:
                     suggestions.insert(0, series_name)
 
         except OSError as e:
-            rprint(f"[red]Error using DeepSeek API: {e}[/red]")
+            logging.error(f"Error using DeepSeek API: {e}")
             return [series_name]  # Fallback to original name
         else:
             return suggestions

@@ -30,6 +30,7 @@ from manga_lookup import (
     GoogleBooksAPI,
     ProjectState,
     generate_sequential_barcodes,
+    sanitize_series_name,
     parse_volume_range,
     process_book_data,
 )
@@ -267,6 +268,7 @@ def series_input_form():
                 st.error("Please enter a series name")
                 return
             if not volume_range:
+            series_name = sanitize_series_name(series_name)
                 st.error("Please enter a volume range")
                 return
 
