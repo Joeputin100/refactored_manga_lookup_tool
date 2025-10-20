@@ -710,7 +710,7 @@ def display_volume_input():
             num_digits = len(match.group(2))
 
                 # Calculate the starting barcode number for this series
-                current_start_num = start_num + total_volumes_so_far
+            current_start_num = start_num + total_volumes_so_far
 
                 # Generate the starting barcode for this series
                 current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
