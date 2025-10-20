@@ -325,7 +325,7 @@ class ProjectState:
         cursor = self.conn.cursor()
         cursor.execute("""
             SELECT series_info FROM cached_series_info
-            WHERE series_name = ?
+            WHERE LOWER(series_name) = LOWER(?)
         """, (series_name,))
 
         result = cursor.fetchone()

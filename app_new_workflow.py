@@ -459,14 +459,15 @@ def display_volume_input():
 
     if st.button("Confirm Volumes"):
         if not volume_range:
+        # Clean the input
+        original_volume_range = volume_range
+        volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+        if volume_range != original_volume_range:
+            st.warning(f"Cleaned input from '{original_volume_range}' to '{volume_range}')
             st.error("Please enter a volume range")
             return
 
         # Debug: Show what's actually in the input
-        if "Q" in volume_range or "q" in volume_range:
-            st.warning(f"Found 'Q' in input: '{volume_range}' - this will be cleaned")
-            # Force clean the input by removing all non-numeric characters except commas and hyphens
-            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
 
         try:
             volumes = parse_volume_range(volume_range)
