@@ -7,7 +7,7 @@ import sqlite3
 import time
 from dataclasses import dataclass
 from datetime import timezone, datetime
-from typing import List
+from typing import List, Union
 
 import requests
 from dotenv import load_dotenv
@@ -33,16 +33,16 @@ class BookInfo:
     volume_number: int
     book_title: str
     authors: list[str]
-    msrp_cost: float | None
-    isbn_13: str | None
-    publisher_name: str | None
-    copyright_year: int | None
-    description: str | None
-    physical_description: str | None
+    msrp_cost: Union[float, None]
+    isbn_13: Union[str, None]
+    publisher_name: Union[str, None]
+    copyright_year: Union[int, None]
+    description: Union[str, None]
+    physical_description: Union[str, None]
     genres: list[str]
     warnings: list[str]
-    barcode: str | None = None
-    cover_image_url: str | None = None
+    barcode: Union[str, None] = None
+    cover_image_url: Union[str, None] = None
 
 
 class ProjectState:
