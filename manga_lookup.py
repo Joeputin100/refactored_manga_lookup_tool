@@ -6,7 +6,7 @@ import re
 import sqlite3
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import timezone, datetime
 from typing import List
 
 import requests
@@ -171,7 +171,7 @@ class ProjectState:
         defaults = {
             "interaction_count": "0",
             "total_books_found": "0",
-            "start_time": datetime.now(UTC).isoformat(),
+            "start_time": datetime.now(timezone.utc).isoformat(),
         }
         for key, value in defaults.items():
             cursor.execute(
@@ -204,7 +204,7 @@ class ProjectState:
     ):
         """Record API call with full details for caching"""
         cursor = self.conn.cursor()
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Insert API call
         cursor.execute(
@@ -234,7 +234,7 @@ class ProjectState:
         return None
         """Record a new user interaction"""
         cursor = self.conn.cursor()
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Update metadata
         interaction_count = int(self._get_metadata("interaction_count")) + 1
@@ -255,7 +255,7 @@ class ProjectState:
         return None
         """Cache a cover image URL"""
         cursor = self.conn.cursor()
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         cursor.execute(
             "INSERT OR REPLACE INTO cached_cover_images (isbn, url, timestamp) VALUES (?, ?, ?)",
             (isbn_key, url, timestamp),
@@ -295,7 +295,7 @@ class ProjectState:
             INSERT OR REPLACE INTO cached_series_info
             (series_name, series_info, timestamp)
             VALUES (?, ?, ?)
-        """, (series_name, json.dumps(series_info), datetime.now(UTC).isoformat()))
+        """, (series_name, json.dumps(series_info), datetime.now(timezone.utc).isoformat()))
         self.conn.commit()
         print(f"💾 Cached series info for: {series_name}")
 
@@ -305,7 +305,7 @@ class ProjectState:
         return None
         """Track API usage and estimate costs"""
         cursor = self.conn.cursor()
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Cost estimates per 1K tokens (approximate rates as of 2024)
         cost_rates = {
