@@ -26,7 +26,7 @@ from mal_cover_fetcher import MALCoverFetcher
 # Import existing core logic
 from manga_lookup import (
     BookInfo,
-    DeepSeekAPI,
+    VertexAIClient,
     GoogleBooksAPI,
     ProjectState,
     generate_sequential_barcodes,
@@ -124,7 +124,7 @@ def process_single_volume(series_name, volume, project_state):
             volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
 
     try:
-        deepseek_api = DeepSeekAPI()
+        deepseek_api = VertexAIClient()
         google_books_api = GoogleBooksAPI()
         book_data = deepseek_api.get_book_info(series_name, volume, project_state)
         if book_data:
@@ -330,6 +330,7 @@ def series_input_form():
 
 
 def confirm_single_series():
+    api = VertexAIClient()
     """Confirm series name before processing"""
     if st.session_state.pending_series_name:
         st.header("Confirm Series Name")
