@@ -393,72 +393,42 @@ def search_series_info(series_name: str):
     # Try Vertex AI first (most authoritative)
     try:
         vertex_api = VertexAIAPI()
-        suggestions = vertex_api.correct_series_name(series_name, st.session_state.project_state)
-        st.info(f"✅ Vertex AI returned {len(suggestions)} suggestions")
-        for suggestion in suggestions[:5]:  # Limit to 5 suggestions
-            # Get comprehensive series information
-            try:
-                series_info = vertex_api.get_comprehensive_series_info(suggestion, st.session_state.project_state)
+        series_info = vertex_api.get_comprehensive_series_info(series_name, st.session_state.project_state)
 
-                # Cache the series info for future use
-                st.session_state.project_state.cache_series_info(suggestion, series_info)
+        if not series_info or not series_info.get("corrected_series_name"):
+            raise ValueError("Vertex AI returned no valid data")
 
-                # Main series result
-                results.append({
-                    "name": suggestion,
-                    "source": "Vertex AI",
-                    "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
-                    "volume_count": series_info.get("extant_volumes", 0),
-                    "summary": series_info.get("summary", ""),
-                    "cover_url": series_info.get("cover_image_url", None),
-                    "additional_info": {
-                        "genres": [],
-                        "publisher": "",
-                        "status": "",
-                        "alternative_titles": series_info.get("alternative_titles", []),
-                        "spin_offs": series_info.get("spinoff_series", []),
-                        "adaptations": []
-                    }
-                })
+        st.session_state.project_state.cache_series_info(series_name, series_info)
+        main_series_name = series_info["corrected_series_name"]
 
-                # Add separate results for alternate editions
-                for edition in series_info.get("alternate_editions", []):
-                    results.append({
-                        "name": f"{suggestion} ({edition.get('edition_name', '')})",
-                        "source": "Vertex AI",
-                        "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
-                        "volume_count": series_info.get("extant_volumes", 0),
-                        "summary": series_info.get("summary", ""),
-                        "cover_url": series_info.get("cover_image_url", None),
-                        "volumes_per_book": edition.get("volumes_per_book"),
-                        "additional_info": {
-                            "genres": [],
-                            "publisher": "",
-                            "status": "",
-                            "alternative_titles": [],
-                            "spin_offs": [],
-                            "adaptations": []
-                        }
-                    })
+        # Main series result
+        results.append({
+            "name": main_series_name,
+            "source": "Vertex AI",
+            "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
+            "volume_count": series_info.get("extant_volumes", 0),
+            "summary": series_info.get("summary", ""),
+            "cover_url": series_info.get("cover_image_url", None),
+            "additional_info": {
+                "spin_offs": series_info.get("spinoff_series", []),
+            }
+        })
 
-            except Exception as detail_error:
-                # Use generic error message for users, log detailed error
-                st.warning("⚠️ Error fetching detailed series information from Vertex AI.")
-                print(f"Vertex AI detailed lookup failed for '{suggestion}': {detail_error}")
-                # If detailed lookup fails, still add the suggestion
-                results.append({
-                    "name": suggestion,
-                    "source": "Vertex AI",
-                    "authors": [],
-                    "volume_count": 0,
-                    "summary": "",
-                    "cover_url": None,
-                    "additional_info": {}
-                })
+        # Alternate editions
+        for edition in series_info.get("alternate_editions", []):
+            results.append({
+                "name": f"{main_series_name} ({edition.get('edition_name', '')})",
+                "source": "Vertex AI",
+                "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
+                "volume_count": series_info.get("extant_volumes", 0),
+                "summary": series_info.get("summary", ""),
+                "cover_url": series_info.get("cover_image_url", None),
+                "volumes_per_book": edition.get("volumes_per_book"),
+                "additional_info": {}
+            })
+
     except Exception as e:
-        # Use specific error message for users, log detailed error
-        st.warning("⚠️ Vertex AI API not available - falling back to other sources.")
-        print(f"Vertex AI API error: {e}")
+        st.warning(f"Vertex AI failed: {e}. Falling back to other sources.")
         # Silently fail for Vertex AI - it's an enhancement
 
     # Try DeepSeek API second
@@ -737,7 +707,9 @@ def display_volume_input():
             current_series["confirmed"] = True
 
             # Calculate the starting barcode for this series
-            total_volumes_so_far = sum(len(s["volumes"]) for s in st.session_state.series_entries if s["confirmed"])
+            total_volumes_all_confirmed = sum(len(s["volumes"]) for s in st.session_state.series_entries if s["confirmed"])
+            total_volumes_of_previous_series = total_volumes_all_confirmed - len(current_series["volumes"])
+
 
             # Use regex to extract prefix and numeric part of the barcode
             match = re.match(r"([a-zA-Z]*)(\d+)", st.session_state.start_barcode)
@@ -747,7 +719,7 @@ def display_volume_input():
                 num_digits = len(match.group(2))
 
                 # Calculate the starting barcode number for this series
-                current_start_num = start_num + total_volumes_so_far
+                current_start_num = start_num + total_volumes_of_previous_series
 
                 # Generate the starting barcode for this series
                 current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
@@ -1004,27 +976,20 @@ def display_results():
         st.divider()
 
     # Export options
-    col1, col2 = st.columns(2)
+    st.divider()
+    st.subheader("Export Options")
 
-    with col1:
-        if st.button("Export to MARC"):
-            try:
-                marc_data = export_books_to_marc(st.session_state.all_books)
-                st.success("MARC file exported successfully!")
-                st.download_button(
-                    "Download MARC File",
-                    data=marc_data,
-                    file_name="manga_export.mrc",
-                    mime="application/marc",
-                )
-            except Exception as e:
-                # Use generic error message for users, log detailed error
-                st.error("Sorry! An error occurred while exporting the file.")
-                print(f"Error exporting MARC: {e!s}")
-
-    with col2:
-        if st.button("Generate Labels"):
-            st.info("Label generation will be implemented")
+    try:
+        marc_data = export_books_to_marc(st.session_state.all_books)
+        st.download_button(
+            "Download MARC File",
+            data=marc_data,
+            file_name="manga_export.mrc",
+            mime="application/marc",
+        )
+    except Exception as e:
+        st.error("Sorry! An error occurred while exporting the file.")
+        print(f"Error exporting MARC: {e!s}")
 
 
 def main():

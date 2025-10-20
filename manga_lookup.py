@@ -818,96 +818,57 @@ class GoogleBooksAPI:
             return 0
 
 
-class VertexAIClient:
-    """Handles Vertex AI API interactions for manga data"""
-
-    def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
-            msg = "GEMINI_API_KEY not found in environment variables"
-            raise ValueError(msg)
-
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-
-    def correct_series_name(self, series_name: str) -> list[str]:
-        """Use Vertex AI API to correct and suggest manga series names"""
+    def get_book_info(
+        self, series_name: str, volume_number: int, project_state: ProjectState | None = None
+    ) -> dict | None:
+        """Get detailed information for a specific volume using a comprehensive prompt"""
         prompt = f"""
-        Given the manga series name "{series_name}", provide 3-5 corrected or alternative names
-        that are actual manga series or editions.
+        Provide comprehensive information for the manga "{series_name}" Volume {volume_number}.
 
-        IMPORTANT: If "{series_name}" is already a correct manga series name, include it as the first suggestion.
-        If "{series_name}" is a valid manga series, prioritize it over other suggestions.
-        For popular series with multiple editions, include different formats:
-        - Regular edition (individual volumes)
-        - Omnibus edition (3 volumes per book)
-        - Colossal edition (5 volumes per book)
-        Format edition names as "Series Name (Edition Type)"
+        Return a JSON object with these exact fields:
+        - "series_name": The official series name
+        - "book_title": The specific title for this volume (e.g., "Volume 1: The Beginning")
+        - "authors": List of author names (e.g., ["Eiichiro Oda", "Masashi Kishimoto"])
+        - "msrp_cost": The retail price in USD (e.g., 9.99)
+        - "isbn_13": The 13-digit ISBN (e.g., "9781421502670")
+        - "publisher_name": The publisher (e.g., "VIZ Media", "Kodansha Comics")
+        - "copyright_year": The copyright year (e.g., 2003)
+        - "description": A brief description of the volume's content
+        - "physical_description": Physical details like pages, dimensions (e.g., "192 pages, 5 x 7.5 inches")
+        - "genres": List of genres (e.g., ["Action", "Adventure", "Fantasy"])
+        - "number_of_extant_volumes": Total number of volumes in the series
+        - "cover_image_url": URL to the cover image if available
 
-        Only include actual manga series names, not unrelated popular series.
-        If "{series_name}" is misspelled or incomplete, provide the correct full name first.
-
-        Prioritize the main series over spinoffs, sequels, or adaptations.
-        If the series has multiple parts (like Tokyo Ghoul and Tokyo Ghoul:re), include the main series first.
-        Include recent and ongoing series, not just completed ones.
-
-        Return only the names as a JSON list, no additional text.
-
-        Example format: ["Attack on Titan (Regular Edition)", "Attack on Titan (Omnibus Edition)", "Attack on Titan (Colossal Edition)", "One Piece", "Naruto"]
+        Important:
+        - Return ONLY valid JSON, no additional text
+        - Use exact field names as specified
+        - If information is unavailable, use null or empty values
+        - Prioritize English edition information
         """
+        
+        aiplatform.init(project=self.project_id, location=self.location)
+        model = GenerativeModel("gemini-1.5-flash")
 
-        headers = {
-            "Content-Type": "application/json",
+        generation_config = {
+            "response_mime_type": "application/json",
+            "temperature": 0.0,
         }
-
-        payload = {
-            "contents": [{
-                "parts": [{
-                    "text": prompt
-                }]
-            }],
-            "generationConfig": {
-                "temperature": 0.3,
-                "maxOutputTokens": 200,
-            }
-        }
-
-        url = f"{self.base_url}?key={self.api_key}"
 
         try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=60,
-                verify=True,  # Enable SSL verification
+            response = model.generate_content(
+                prompt,
+                generation_config=generation_config,
             )
-            response.raise_for_status()
+            book_data = json.loads(response.text)
+            if project_state:
+                project_state.track_api_usage("vertex_ai", "generateContent", 0)  # Token count not available in this SDK version
+            return book_data
+        except Exception as e:
+            print(f"Error getting book info from Vertex AI for {series_name} Vol {volume_number}: {e}")
+            return None
 
-            result = response.json()
-            content = result["candidates"][0]["content"]["parts"][0]["text"]
-
-            # Parse JSON response
-            suggestions = json.loads(content)
-
-            # Filter out any None values from suggestions
-            suggestions = [s for s in suggestions if s is not None]
-
-            # Ensure the original series name is included if it's valid
-            if series_name not in suggestions:
-                original_in_suggestions = any(
-                    suggestion and series_name.lower() in suggestion.lower()
-                    for suggestion in suggestions
-                )
-                if not original_in_suggestions:
-                    suggestions.insert(0, series_name)
-
-        except OSError as e:
-            rprint(f"[red]Error using Vertex AI API: {e}[/red]")
-            return [series_name]  # Fallback to original name
-        else:
-            return suggestions
-
-
+    def correct_series_name(self, series_name: str, project_state: ProjectState | None = None) -> list[str]:
+        pass
 def validate_barcode(barcode: str) -> bool:
     """
     Validate barcode format according to library standards.
@@ -932,7 +893,7 @@ def validate_barcode(barcode: str) -> bool:
         return False
 
     # Check for valid characters (alphanumeric and hyphens only)
-    if not re.match(r'^[A-Za-z0-9\-]+$', barcode):
+    if not re.match(r'^[A-Za-z0-9\\-]+$', barcode):
         return False
 
     return True
