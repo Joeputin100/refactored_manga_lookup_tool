@@ -338,7 +338,6 @@ def search_series_info(series_name: str):
         # Use generic error message for users, log detailed error
         print(f"Google Books API error: {e}")
         # Silently fail for Google Books - it's just an enhancement
-        pass
 
     # Fetch cover images for all results
     for result in results:
@@ -357,7 +356,6 @@ def fetch_cover_for_series(series_name: str) -> str | None:
         if cover_url:
             return cover_url
     except Exception:
-        pass
 
     # Try MangaDex
     try:
@@ -366,7 +364,6 @@ def fetch_cover_for_series(series_name: str) -> str | None:
         if cover_url:
             return cover_url
     except Exception:
-        pass
 
     return None
 
@@ -462,6 +459,8 @@ def display_volume_input():
         st.error("Please enter a volume range")
         return
             if not volume_range:
+        st.error("Please enter a volume range")
+        return
             # Clean the input
             original_volume_range = volume_range
                 st.error("Please enter a volume range")
