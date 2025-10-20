@@ -390,65 +390,65 @@ def search_series_info(series_name: str):
         st.error(f"❌ Vertex AI initialization failed: {e}")
         st.info("Falling back to DeepSeek API...")
 
-    # Try Vertex AI first (most authoritative)
+    # Try DeepSeek API first
     try:
-        vertex_api = VertexAIAPI()
-        series_info = vertex_api.get_comprehensive_series_info(series_name, st.session_state.project_state)
+        deepseek_api = DeepSeekAPI()
+        suggestions = deepseek_api.correct_series_name(series_name)
+        for suggestion in suggestions[:5]:
+            book_data = deepseek_api.get_book_info(suggestion, 1, st.session_state.project_state)
+            if book_data:
+                results.append({
+                    "name": suggestion,
+                    "source": "DeepSeek",
+                    "authors": book_data.get("authors", []),
+                    "volume_count": book_data.get("number_of_extant_volumes", 0),
+                    "summary": book_data.get("description", ""),
+                    "cover_url": None,
+                    "additional_info": {
+                        "genres": book_data.get("genres", []),
+                        "publisher": book_data.get("publisher_name", ""),
+                    }
+                })
+    except Exception as ds_e:
+        st.error(f"DeepSeek API failed: {ds_e}")
 
-        if not series_info or not series_info.get("corrected_series_name"):
-            raise ValueError("Vertex AI returned no valid data")
-
-        st.session_state.project_state.cache_series_info(series_name, series_info)
-        main_series_name = series_info["corrected_series_name"]
-
-        # Main series result
-        results.append({
-            "name": main_series_name,
-            "source": "Vertex AI",
-            "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
-            "volume_count": series_info.get("extant_volumes", 0),
-            "summary": series_info.get("summary", ""),
-            "cover_url": series_info.get("cover_image_url", None),
-            "additional_info": {
-                "spin_offs": series_info.get("spinoff_series", []),
-            }
-        })
-
-        # Alternate editions
-        for edition in series_info.get("alternate_editions", []):
-            results.append({
-                "name": f"{main_series_name} ({edition.get('edition_name', '')})",
-                "source": "Vertex AI",
-                "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
-                "volume_count": series_info.get("extant_volumes", 0),
-                "summary": series_info.get("summary", ""),
-                "cover_url": series_info.get("cover_image_url", None),
-                "volumes_per_book": edition.get("volumes_per_book"),
-                "additional_info": {}
-            })
-
-    except Exception as e:
-        st.warning(f"Vertex AI failed: {e}. Falling back to other sources.")
+    # Fallback to Vertex AI
+    if not results:
         try:
-            deepseek_api = DeepSeekAPI()
-            suggestions = deepseek_api.correct_series_name(series_name)
-            for suggestion in suggestions[:5]:
-                book_data = deepseek_api.get_book_info(suggestion, 1, st.session_state.project_state)
-                if book_data:
+            vertex_api = VertexAIAPI()
+            series_info = vertex_api.get_comprehensive_series_info(series_name, st.session_state.project_state)
+
+            if series_info and series_info.get("corrected_series_name"):
+                st.session_state.project_state.cache_series_info(series_name, series_info)
+                main_series_name = series_info["corrected_series_name"]
+
+                # Main series result
+                results.append({
+                    "name": main_series_name,
+                    "source": "Vertex AI",
+                    "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
+                    "volume_count": series_info.get("extant_volumes", 0),
+                    "summary": series_info.get("summary", ""),
+                    "cover_url": series_info.get("cover_image_url", None),
+                    "additional_info": {
+                        "spin_offs": series_info.get("spinoff_series", []),
+                    }
+                })
+
+                # Alternate editions
+                for edition in series_info.get("alternate_editions", []):
                     results.append({
-                        "name": suggestion,
-                        "source": "DeepSeek",
-                        "authors": book_data.get("authors", []),
-                        "volume_count": book_data.get("number_of_extant_volumes", 0),
-                        "summary": book_data.get("description", ""),
-                        "cover_url": None,
-                        "additional_info": {
-                            "genres": book_data.get("genres", []),
-                            "publisher": book_data.get("publisher_name", ""),
-                        }
+                        "name": f"{main_series_name} ({edition.get('edition_name', '')})",
+                        "source": "Vertex AI",
+                        "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
+                        "volume_count": series_info.get("extant_volumes", 0),
+                        "summary": series_info.get("summary", ""),
+                        "cover_url": series_info.get("cover_image_url", None),
+                        "volumes_per_book": edition.get("volumes_per_book"),
+                        "additional_info": {}
                     })
-        except Exception as ds_e:
-            st.error(f"DeepSeek API also failed: {ds_e}")
+        except Exception as e:
+            st.warning(f"Vertex AI failed: {e}.")
 
     # Try Google Books for additional series information
     try:
@@ -807,17 +807,17 @@ def display_processing():
                 if processed_count >= progress:
                     # Get book info
                     book_data = None
-                    if vertex_api:
-                        try:
-                            book_data = vertex_api.get_book_info(series_name, volume_num, st.session_state.project_state)
-                        except Exception as e:
-                            st.warning(f"Vertex AI failed for {series_name} Vol {volume_num}: {e}")
-                    
-                    if not book_data and deepseek_api:
+                    if deepseek_api:
                         try:
                             book_data = deepseek_api.get_book_info(series_name, volume_num, st.session_state.project_state)
                         except Exception as e:
-                            st.error(f"DeepSeek API failed for {series_name} Vol {volume_num}: {e}")
+                            st.warning(f"DeepSeek API failed for {series_name} Vol {volume_num}: {e}")
+                    
+                    if not book_data and vertex_api:
+                        try:
+                            book_data = vertex_api.get_book_info(series_name, volume_num, st.session_state.project_state)
+                        except Exception as e:
+                            st.error(f"Vertex AI failed for {series_name} Vol {volume_num}: {e}")
 
                     if book_data:
                         # Create BookInfo object and add barcode
