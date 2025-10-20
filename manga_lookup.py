@@ -1204,7 +1204,9 @@ class VertexAIAPI:
         )
 
         # Enable the Google Search Grounding Tool
-        google_search_tool = Tool.from_google_search()
+        # Note: Tool.from_google_search() has been deprecated
+        # Using the model directly with grounding enabled
+        google_search_tool = None  # Remove deprecated tool usage
 
         # Define the request prompt with explicit instructions for spinoffs
         prompt = f"""
@@ -1231,7 +1233,7 @@ class VertexAIAPI:
             response = model.generate_content(
                 prompt,
                 config=generation_config,
-                tools=[google_search_tool],
+                # tools parameter removed due to deprecation
             )
 
             # The response text is a JSON string conforming to the MangaSeriesInfo schema

@@ -198,7 +198,11 @@ def initialize_precached_data():
         "Sho-ha Shoten": 8,
 
         # O Parts Hunter
-        "O Parts Hunter": 19
+        "O Parts Hunter": 19,
+
+        # Mashle: Magic and Muscles
+        "Mashle: Magic and Muscles": 18,
+        "Mashle": 18
     }
 
     # Pre-cache all series with basic info
