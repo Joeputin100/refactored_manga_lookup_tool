@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
 import json
-from dotenv import load_dotenv
+import os
 from manga_lookup import VertexAIAPI, ProjectState
 
-# Load environment variables from secrets.toml
-load_dotenv(dotenv_path='secrets.toml')
+# Manual .env loading
+try:
+    with open('secrets.toml', 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip().strip('"')
+                if key == 'project_id': # Handle nested key
+                    os.environ['VERTEX_AI_PROJECT_ID'] = value
+                else:
+                    os.environ[key] = value
+except FileNotFoundError:
+    print("⚠️ secrets.toml not found. Relying on pre-set environment variables.")
+
 
 # --- Configuration ---
 SERIES_TO_TEST = "One Piece"  # <-- Change this to test different series
