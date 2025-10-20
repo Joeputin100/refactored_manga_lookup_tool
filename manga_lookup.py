@@ -9,7 +9,7 @@ from google.cloud import aiplatform
 from google.oauth2 import service_account
 from pydantic import BaseModel, Field
 from rich import print as rprint
-from vertexai.generative_models_ import (
+from vertexai.generative_models import (
     GenerativeModel,
     Tool,
 )
