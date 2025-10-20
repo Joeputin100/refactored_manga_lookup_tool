@@ -516,7 +516,7 @@ def display_volume_input():
                 st.rerun()
     
             except ValueError as e:
-                st.error(f"Error parsing volume range '{volume_range}': {e}")
+                    st.error(f"Error parsing volume range '{volume_range}': {e}")
                 st.info("Valid formats: '1-10', '1,3,5,7', '1-5,8,10', or '17-18-19' for omnibus")
             except Exception as e:
                 st.error(f"Unexpected error: {e}")
