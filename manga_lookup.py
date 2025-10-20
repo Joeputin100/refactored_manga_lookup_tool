@@ -822,25 +822,52 @@ class VertexAIAPI:
     """Handles Google Vertex AI API interactions for comprehensive manga data using REST APIs"""
 
     def __init__(self):
-        try:
-            import streamlit as st
-            if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
-                self.api_key = st.secrets["GEMINI_API_KEY"]
-                self.project_id = st.secrets["VERTEX_AI_PROJECT_ID"]
-                self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
-            else:
-                self.api_key = os.getenv("GEMINI_API_KEY")
-                self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
-                self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
-        except ImportError:
-            self.api_key = os.getenv("GEMINI_API_KEY")
-            self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
-            self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+        self._load_secrets()
         
         if not self.api_key or not self.project_id:
             raise ValueError("GEMINI_API_KEY and VERTEX_AI_PROJECT_ID must be set.")
             
         self.base_url = f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/gemini-1.5-flash:generateContent"
+
+    def _load_secrets(self):
+        """Load secrets from secrets.toml in various locations."""
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        paths_to_check = [
+            os.path.join(script_dir, 'secrets.toml'),
+            os.path.join(script_dir, '.streamlit', 'secrets.toml'),
+            os.path.expanduser('~/.streamlit/secrets.toml')
+        ]
+        
+        for path in paths_to_check:
+            try:
+                with open(path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            key = key.strip()
+                            value = value.strip().strip('"')
+                            if key == 'GEMINI_API_KEY':
+                                self.api_key = value
+                            elif key == 'project_id':
+                                self.project_id = value
+                            elif key == 'location':
+                                self.location = value
+                if hasattr(self, 'api_key'):
+                    print(f"✅ Loaded secrets from {path}")
+                    return
+            except FileNotFoundError:
+                continue
+        
+        # Fallback to environment variables if file not found
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+        self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+        
+        if self.api_key:
+            print("✅ Loaded secrets from environment variables.")
+        else:
+            print("⚠️ Could not find secrets.toml or environment variables.")
 
     def _make_request(self, prompt: str) -> dict:
         """Makes a request to the Vertex AI REST API."""

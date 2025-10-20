@@ -1,41 +1,10 @@
 #!/usr/bin/env python3
 import json
-import os
 from manga_lookup import VertexAIAPI, ProjectState
 
 # --- Configuration ---
 SERIES_TO_TEST = "One Piece"  # <-- Change this to test different series
 VOLUME_TO_TEST = 1            # <-- Change this to test different volumes
-
-def load_secrets():
-    """Load secrets from secrets.toml in various locations."""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    paths_to_check = [
-        os.path.join(script_dir, 'secrets.toml'),
-        os.path.join(script_dir, '.streamlit', 'secrets.toml'),
-        os.path.expanduser('~/.streamlit/secrets.toml')
-    ]
-    
-    for path in paths_to_check:
-        try:
-            with open(path, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
-                        key = key.strip()
-                        value = value.strip().strip('"')
-                        if key == 'project_id': # Handle nested key
-                            os.environ['VERTEX_AI_PROJECT_ID'] = value
-                        else:
-                            os.environ[key] = value
-            print(f"✅ Loaded secrets from {path}")
-            return
-        except FileNotFoundError:
-            continue
-    print("⚠️ Could not find secrets.toml in any of the standard locations.")
-
-load_secrets()
 
 def test_series_info():
     """Tests the get_comprehensive_series_info method."""
