@@ -311,6 +311,12 @@ def series_input_form():
             st.session_state.start_barcode = start_barcode
 
             # Parse volumes to validate
+    try:
+        volumes = parse_volume_range(volume_range)
+    except ValueError as e:
+        st.error(f"Error parsing volume range: {e}")
+        return
+
             volumes = parse_volume_range(volume_range)
             if not volumes:
                 st.error("Invalid volume range format")
