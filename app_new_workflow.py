@@ -256,7 +256,7 @@ def initialize_session_state():
             st.session_state.project_state = SessionStateCache()
 
     # Initialize pre-cached data
-    initialize_precached_data()
+    # initialize_precached_data()
 
 
 def display_barcode_input():
@@ -818,6 +818,23 @@ def display_processing():
     """Step 6: Processing display"""
     st.header("Processing Manga Volumes")
 
+    # Initialize APIs
+    try:
+        vertex_api = VertexAIAPI()
+    except Exception as e:
+        st.warning(f"Vertex AI API not available: {e}")
+        vertex_api = None
+
+    try:
+        deepseek_api = DeepSeekAPI()
+    except Exception as e:
+        st.error(f"DeepSeek API not available: {e}")
+        deepseek_api = None
+
+    if not vertex_api and not deepseek_api:
+        st.error("No APIs are available. Cannot process books.")
+        return
+
     # Initialize processing state
     if not st.session_state.processing_state["is_processing"]:
         total_volumes = sum(len(series["volumes"]) for series in st.session_state.series_entries)
@@ -826,8 +843,8 @@ def display_processing():
             "progress": 0,
             "total_volumes": total_volumes,
             "start_time": time.time(),
-            "results": []
         }
+        st.session_state.all_books = []
 
     # Show progress
     state = st.session_state.processing_state
@@ -835,49 +852,62 @@ def display_processing():
     total = state["total_volumes"]
 
     st.write(f"Processing {progress} of {total} volumes")
+    progress_bar = st.progress(progress / total if total > 0 else 0)
 
-    # Show elapsed time
-    if state["start_time"]:
-        elapsed = time.time() - state["start_time"]
-        if elapsed < 60:
-            st.write(f"Elapsed time: {int(elapsed)} seconds")
-        elif elapsed < 3600:
-            minutes = int(elapsed / 60)
-            seconds = int(elapsed % 60)
-            st.write(f"Elapsed time: {minutes}m {seconds}s")
-        else:
-            hours = int(elapsed / 3600)
-            minutes = int((elapsed % 3600) / 60)
-            st.write(f"Elapsed time: {hours}h {minutes}m")
-
-    # Show progress table with check/X marks
-    st.subheader("Processing Progress")
-
-    # Create progress table
-    progress_data = []
-    for series_entry in st.session_state.series_entries:
-        for volume in series_entry["volumes"]:
-            progress_data.append({
-                "Series": series_entry["selected_series"],
-                "Volume": volume,
-                "Status": "❌" if progress < total else "✅"
-            })
-
-    if progress_data:
-        # Display as a table
-        for i, item in enumerate(progress_data):
-            col1, col2, col3 = st.columns([3, 1, 1])
-            col1.write(f"{item['Series']} - Vol {item['Volume']}")
-            col2.write(item["Status"])
-            if i < len(progress_data) - 1:
-                st.divider()
-
-    # Process volumes (simplified for now)
+    # Process all books
     if progress < total:
-        # Simulate processing
-        time.sleep(0.5)
-        st.session_state.processing_state["progress"] += 1
-        st.rerun()
+        processed_count = 0
+        for series_entry in st.session_state.series_entries:
+            if not series_entry["confirmed"]:
+                continue
+
+            series_name = series_entry["selected_series"]
+            volumes = series_entry["volumes"]
+            barcodes = series_entry["barcodes"]
+
+            for i, volume_num in enumerate(volumes):
+                if processed_count >= progress:
+                    # Get book info
+                    book_data = None
+                    if vertex_api:
+                        try:
+                            book_data = vertex_api.get_book_info(series_name, volume_num, st.session_state.project_state)
+                        except Exception as e:
+                            st.warning(f"Vertex AI failed for {series_name} Vol {volume_num}: {e}")
+                    
+                    if not book_data and deepseek_api:
+                        try:
+                            book_data = deepseek_api.get_book_info(series_name, volume_num, st.session_state.project_state)
+                        except Exception as e:
+                            st.error(f"DeepSeek API failed for {series_name} Vol {volume_num}: {e}")
+
+                    if book_data:
+                        # Create BookInfo object and add barcode
+                        from manga_lookup import BookInfo
+                        book = BookInfo(
+                            series_name=book_data.get("series_name", series_name),
+                            volume_number=volume_num,
+                            book_title=book_data.get("book_title", f"{series_name} Vol. {volume_num}"),
+                            authors=book_data.get("authors", []),
+                            msrp_cost=book_data.get("msrp_cost"),
+                            isbn_13=book_data.get("isbn_13"),
+                            publisher_name=book_data.get("publisher_name"),
+                            copyright_year=book_data.get("copyright_year"),
+                            description=book_data.get("description"),
+                            physical_description=book_data.get("physical_description"),
+                            genres=book_data.get("genres", []),
+                            warnings=[],
+                            barcode=barcodes[i]
+                        )
+                        st.session_state.all_books.append(book)
+
+                    # Update progress
+                    st.session_state.processing_state["progress"] += 1
+                    progress_bar.progress(st.session_state.processing_state["progress"] / total)
+                    time.sleep(0.1) # Small delay to allow UI to update
+                    st.rerun()
+                
+                processed_count += 1
     else:
         st.session_state.processing_state["is_processing"] = False
         st.session_state.workflow_step = "results"

@@ -1191,6 +1191,12 @@ class VertexAIAPI:
         - "Attack on Titan: Lost Girls"
         - Any other related manga series
 
+        Also, include all alternate editions of the main series, such as:
+        - Omnibus editions
+        - Colossal editions
+        - Collector's editions
+        - Full Color editions
+
         Provide the complete information in the requested JSON schema.
         """
 
