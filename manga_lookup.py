@@ -1,18 +1,11 @@
-#!/usr/bin/env python3
-import logging
-import json
-import os
-import re
-import sqlite3
-import time
-from dataclasses import dataclass
-from datetime import timezone, datetime
-from typing import List, Union
-
-import requests
-from dotenv import load_dotenv
+from google.cloud import aiplatform
+from google.oauth2 import service_account
 from pydantic import BaseModel, Field
 from rich import print as rprint
+from vertexai.generative_models import (
+    GenerativeModel,
+    Tool,
+)
 
 # Load environment variables
 load_dotenv()
@@ -285,8 +278,10 @@ class ProjectState:
         # Simple similarity matching - series that contain the input name
         similar_series = []
         for existing_series in all_series:
-            if (series_name.lower() in existing_series.lower() or
-                existing_series.lower() in series_name.lower()):
+            if (
+                series_name.lower() in existing_series.lower()
+                or existing_series.lower() in series_name.lower()
+            ):
                 similar_series.append(existing_series)
 
         # Remove duplicates and limit results
@@ -717,7 +712,7 @@ class DeepSeekAPI:
         - Use exact field names as specified
         - If information is unavailable, use null or empty values
         - Prioritize English edition information
-        - For manga, typical MSRP is $9.99-$12.99 for standard volumes
+        - For manga, typical MSRP is $9.99-2.99 for standard volumes
         """
 
 
