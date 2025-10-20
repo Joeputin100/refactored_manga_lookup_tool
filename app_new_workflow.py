@@ -453,6 +453,7 @@ def display_volume_input():
 
     volume_range = st.text_input(
         "Volume Range",
+        value="",
         placeholder="e.g., 1-10, 1,3,5,7, 1-5,8,10",
         key=f"volume_range_{st.session_state.current_series_index}"
     )

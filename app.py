@@ -87,6 +87,8 @@ def fetch_cover_for_book(book: BookInfo) -> str | None:
         )
         if cover_url:
             return cover_url
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
     except Exception:
         pass
 
@@ -96,6 +98,8 @@ def fetch_cover_for_book(book: BookInfo) -> str | None:
         cover_url = mal_fetcher.fetch_cover(book.series_name, book.volume_number)
         if cover_url:
             return cover_url
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
     except Exception:
         pass
 
@@ -105,14 +109,20 @@ def fetch_cover_for_book(book: BookInfo) -> str | None:
         cover_url = mangadex_fetcher.fetch_cover(book.series_name, book.volume_number)
         if cover_url:
             return cover_url
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
     except Exception:
         pass
 
     return None
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
 
 def process_single_volume(series_name, volume, project_state):
     """Process a single volume and return book info"""
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
     try:
         deepseek_api = DeepSeekAPI()
         google_books_api = GoogleBooksAPI()
@@ -120,9 +130,15 @@ def process_single_volume(series_name, volume, project_state):
         if book_data:
             book = process_book_data(book_data, volume, google_books_api, project_state)
             return book, None
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
         return None, f"Volume {volume} not found"
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
     except Exception as e:
         return None, f"Error processing volume {volume}: {e!s}"
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
 
 def display_duck_animation():
@@ -134,17 +150,25 @@ def calculate_elapsed_time(start_time):
     """Calculate elapsed time"""
     if not start_time:
         return "0 seconds"
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
     elapsed = time.time() - start_time
     if elapsed < 60:
         return f"{int(elapsed)} seconds"
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
     if elapsed < 3600:
         minutes = int(elapsed / 60)
         seconds = int(elapsed % 60)
         return f"{minutes}m {seconds}s"
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
     hours = int(elapsed / 3600)
     minutes = int((elapsed % 3600) / 60)
     return f"{hours}h {minutes}m"
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
 
 def display_progress_section():
@@ -174,6 +198,8 @@ def process_series(series_name: str, volume_range: str, start_barcode: str):
         if not volumes:
             st.error(f"Invalid volume range: {volume_range}")
             return
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
         # Initialize processing state
         st.session_state.processing_state = {
@@ -267,10 +293,17 @@ def series_input_form():
             if not series_name:
                 st.error("Please enter a series name")
                 return
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
             if not volume_range:
             series_name = sanitize_series_name(series_name)
                 st.error("Please enter a volume range")
+
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
                 return
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
             # Add to pending series
             st.session_state.pending_series_name = series_name
@@ -282,6 +315,8 @@ def series_input_form():
             if not volumes:
                 st.error("Invalid volume range format")
                 return
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
             # Add to series entries
             st.session_state.series_entries.append({
@@ -342,6 +377,8 @@ def display_results():
     """Display processing results"""
     if not st.session_state.all_books:
         return
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
     st.header("Results")
 
@@ -450,11 +487,15 @@ def main():
     if st.session_state.processing_state.get("is_processing", False):
         display_progress_section()
         return
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
     # Show series confirmation if needed
     if st.session_state.pending_series_name:
         confirm_single_series()
         return
+            volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+
 
     # Process selected series
     if st.session_state.selected_series:
