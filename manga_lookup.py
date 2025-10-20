@@ -834,7 +834,6 @@ class VertexAIAPI:
     def _make_request(self, prompt: str) -> dict:
         """Makes a request to the Vertex AI REST API."""
         headers = {
-            "Authorization": f"Bearer $(gcloud auth print-access-token)",
             "Content-Type": "application/json",
         }
         payload = {
@@ -845,7 +844,9 @@ class VertexAIAPI:
             }
         }
         
-        response = requests.post(self.base_url, headers=headers, json=payload)
+        url = f"{self.base_url}?key={self.api_key}"
+        
+        response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         return response.json()
 
