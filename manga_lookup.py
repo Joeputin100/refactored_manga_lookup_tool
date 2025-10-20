@@ -1,9 +1,15 @@
+import time
+from dataclasses import dataclass
+from datetime import timezone, datetime
+from typing import List, Union
+
+import requests
 from dotenv import load_dotenv
 from google.cloud import aiplatform
 from google.oauth2 import service_account
 from pydantic import BaseModel, Field
 from rich import print as rprint
-from vertexai.generative_models import (
+from vertexai.generative_models_ import (
     GenerativeModel,
     Tool,
 )
