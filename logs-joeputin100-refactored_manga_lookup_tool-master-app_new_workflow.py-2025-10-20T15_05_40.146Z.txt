@@ -1,0 +1,104 @@
+
+[     UTC     ] Logs for pineapple2.streamlit.app/
+────────────────────────────────────────────────────────────────────────────────────────
+[15:04:50] 🖥 Provisioning machine...
+[15:04:50] 🎛 Preparing system...
+[15:04:50] ⛓ Spinning up manager process...
+[15:04:50] 🚀 Starting up repository: 'refactored_manga_lookup_tool', branch: 'master', main module: 'app_new_workflow.py'
+[15:04:50] 🐙 Cloning repository...
+[15:04:50] 🐙 Cloning into '/mount/src/refactored_manga_lookup_tool'...
+
+[15:04:51] 🐙 Cloned repository!
+[15:04:51] 🐙 Pulling code changes from Github...
+[15:04:51] 📦 Processing dependencies...
+
+──────────────────────────────────────── uv ───────────────────────────────────────────
+
+Using uv pip install.
+Using Python 3.13.8 environment at /home/adminuser/venv
+Resolved 48 packages in 640ms
+Prepared 48 packages in 2.15s
+Installed 48 packages in 134ms
+ + altair==5.5.0
+ + annotated-types==0.7.0
+ + attrs==25.4.0
+ + blinker==1.9.0
+ + cachetools==6.2.1
+ + certifi==2025.10.5
+ + charset-normalizer==3.4.4
+ + click==8.3.0
+ + gitdb==4.0.12
+ + gitpython==3.1.45
+ + idna==3.11
+ +[2025-10-20 15:04:54.513252]  jinja2==3.1.6
+ + jsonschema==4.25.1
+ + jsonschema-specifications==2025.9.1
+ + markdown-it-py==4.0.0
+ + markupsafe==3.0.3
+ + mdurl==0.1.2
+ + narwhals==2.9.0
+ + numpy==2.3.4
+ + packaging==[2025-10-20 15:04:54.513973] 25.0
+ + pandas==2.3.3
+ + pillow==11.3.0
+ + protobuf==6.33.0
+ + pyarrow==21.0.0
+ + pydantic==2.12.3
+ [2025-10-20 15:04:54.514235] + pydantic-core==2.41.4
+ + pydeck==0.9.1
+ + pygments==2.19.2
+ + pymarc==5.3.1
+ + python-dateutil==2.9.0.post0
+ + python-dotenv==1.1.1
+ + pytz==2025.2
+ + referencing==0.37.0
+ + reportlab==4.4.4
+ + requests==2.32.5
+ + rich==14.2.0[2025-10-20 15:04:54.514690] 
+ + rpds-py==0.27.1
+ + six==1.17.0
+ + smmap==5.0.2
+ + streamlit==1.50.0
+ + tenacity==9.1.2
+ + toml==0.10.2[2025-10-20 15:04:54.514923] 
+ + tornado==6.5.2
+ + typing-extensions==4.15.0
+ + typing-inspection==0.4.2
+ +[2025-10-20 15:04:54.515133]  tzdata==2025.2
+ + urllib3==2.5.0
+ + watchdog==6.0.0
+Checking if Streamlit is installed
+Found Streamlit version 1.50.0 in the environment
+Installing rich for an improved exception logging
+Using uv pip install.
+Using Python 3.13.8 environment at /home/adminuser/venv
+Audited 1 package in 2ms
+
+────────────────────────────────────────────────────────────────────────────────────────
+
+[15:04:56] 🐍 Python dependencies were installed from /mount/src/refactored_manga_lookup_tool/requirements.txt using uv.
+Check if streamlit is installed
+Streamlit is already installed
+[15:04:57] 📦 Processed dependencies!
+
+
+
+────────────────────── Traceback (most recent call last) ───────────────────────
+  /home/adminuser/venv/lib/python3.13/site-packages/streamlit/runtime/scriptru  
+  nner/exec_code.py:128 in exec_func_with_error_handling                        
+                                                                                
+  /home/adminuser/venv/lib/python3.13/site-packages/streamlit/runtime/scriptru  
+  nner/script_runner.py:669 in code_to_exec                                     
+                                                                                
+  /mount/src/refactored_manga_lookup_tool/app_new_workflow.py:26 in <module>    
+                                                                                
+      23 import requests                                                        
+      24                                                                        
+      25 # Import existing core logic                                           
+  ❱   26 from manga_lookup import (                                             
+      27 │   DeepSeekAPI,                                                       
+      28 │   GoogleBooksAPI,                                                    
+      29 │   VertexAIAPI,                                                       
+────────────────────────────────────────────────────────────────────────────────
+ImportError: cannot import name 'generate_sequential_barcodes' from 
+'manga_lookup' (/mount/src/refactored_manga_lookup_tool/manga_lookup.py)
