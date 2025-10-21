@@ -554,7 +554,7 @@ class DeepSeekAPI:
                     # Add original name as first suggestion
                     suggestions.insert(0, series_name)
 
-        except OSError as e:
+        except (OSError, requests.exceptions.RequestException, json.JSONDecodeError, KeyError) as e:
             logging.error(f"Error using DeepSeek API: {e}")
             return [series_name]  # Fallback to original name
         else:
@@ -635,12 +635,14 @@ class DeepSeekAPI:
                     volume_number,
                     success=False,
                 )
+                return None  # Return None if JSON parsing fails
+
             if not book_data.get("number_of_extant_volumes"):
                 google_api = GoogleBooksAPI()
                 book_data["number_of_extant_volumes"] = google_api.get_total_volumes(
                     series_name,
                 )
-                return None
+                # Don't return None here - continue with the book data even if volume count is missing
 
             # Record successful API call
             project_state.record_api_call(prompt, content, volume_number, success=True)
