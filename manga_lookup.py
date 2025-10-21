@@ -1,21 +1,16 @@
+import json
+import logging
 import os
 import re
 import sqlite3
 import time
 from dataclasses import dataclass
 from datetime import timezone, datetime
-from typing import List, Union
+from typing import Union
 
 import requests
 from dotenv import load_dotenv
-from google.cloud import aiplatform
-from google.oauth2 import service_account
-from pydantic import BaseModel, Field
 from rich import print as rprint
-from vertexai.generative_models import (
-    GenerativeModel,
-    Tool,
-)
 
 # Load environment variables
 load_dotenv()
@@ -462,22 +457,23 @@ class DeepSeekAPI:
     """Handles DeepSeek API interactions with rate limiting and error handling"""
 
     def __init__(self):
-        # Try Streamlit secrets first (for Streamlit Cloud)
         try:
             import streamlit as st
-            if hasattr(st, 'secrets') and 'DEEPSEEK_API_KEY' in st.secrets:
-                self.api_key = st.secrets["DEEPSEEK_API_KEY"]
+            if hasattr(st, 'secrets') and 'VERTEX_AI_PROJECT_ID' in st.secrets:
+                self.project_id = st.secrets["VERTEX_AI_PROJECT_ID"]
+                self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
             else:
-                self.api_key = os.getenv("DEEPSEEK_API_KEY")
+                self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+                self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
         except ImportError:
-            # Fallback to environment variables if streamlit is not available
-            self.api_key = os.getenv("DEEPSEEK_API_KEY")
-
-        if not self.api_key:
-            msg = "DEEPSEEK_API_KEY not found in environment variables or Streamlit secrets"
-            raise ValueError(msg)
-
-        self.base_url = "https://api.deepseek.com/v1/chat/completions"
+            self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+            self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+        
+        if not self.project_id:
+            raise ValueError("VERTEX_AI_PROJECT_ID must be set.")
+        
+        import vertexai
+        vertexai.init(project=self.project_id, location=self.location)
         self.model = "deepseek-chat"  # Using DeepSeek-V3.2-Exp (non-thinking mode)
         self.last_request_time = time.time()
 
@@ -730,7 +726,23 @@ class GoogleBooksAPI:
     """Handles Google Books API interactions for cover image retrieval using keyless queries"""
 
     def __init__(self):
-        self.base_url = "https://www.googleapis.com/books/v1/volumes"
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'VERTEX_AI_PROJECT_ID' in st.secrets:
+                self.project_id = st.secrets["VERTEX_AI_PROJECT_ID"]
+                self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
+            else:
+                self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+                self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+        except ImportError:
+            self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+            self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+        
+        if not self.project_id:
+            raise ValueError("VERTEX_AI_PROJECT_ID must be set.")
+        
+        import vertexai
+        vertexai.init(project=self.project_id, location=self.location)
 
     def _select_cover_image(self, image_links: dict) -> Union[str, None]:
         """Select the best available cover image from Google Books image links."""
@@ -829,228 +841,19 @@ class VertexAIAPI:
     def __init__(self):
         try:
             import streamlit as st
-            if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
-                self.api_key = st.secrets["GEMINI_API_KEY"]
+            if hasattr(st, 'secrets') and 'VERTEX_AI_PROJECT_ID' in st.secrets:
                 self.project_id = st.secrets["VERTEX_AI_PROJECT_ID"]
                 self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
             else:
-                self.api_key = os.getenv("GEMINI_API_KEY")
                 self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
                 self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
         except ImportError:
-            self.api_key = os.getenv("GEMINI_API_KEY")
             self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
             self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
         
-        if not self.api_key or not self.project_id:
-            raise ValueError("GEMINI_API_KEY and VERTEX_AI_PROJECT_ID must be set.")
-            
-        self.base_url = f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/gemini-1.5-flash:generateContent"
-
-    def _make_request(self, prompt: str) -> dict:
-        """Makes a request to the Vertex AI REST API."""
-        headers = {
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.0,
-                "response_mime_type": "application/json",
-            }
-        }
+        if not self.project_id:
+            raise ValueError("VERTEX_AI_PROJECT_ID must be set.")
         
-        url = f"{self.base_url}?key={self.api_key}"
-        
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()
+        import vertexai
+        vertexai.init(project=self.project_id, location=self.location)
 
-    def get_comprehensive_series_info(self, series_name: str, project_state: Union[ProjectState, None] = None) -> dict:
-        prompt = f"""
-        Perform comprehensive grounded research on the manga series '{series_name}'.
-        IMPORTANT: Include ALL spinoff series, prequels, sequels, and related works.
-        Also, include all alternate editions of the main series.
-        Provide the complete information in the requested JSON schema.
-        """
-        # This is a simplified placeholder. A proper implementation would require a schema definition.
-        return self._make_request(prompt)
-
-    def get_book_info(self, series_name: str, volume_number: int, project_state: Union[ProjectState, None] = None) -> Union[dict, None]:
-        prompt = f"""
-        Provide comprehensive information for the manga "{series_name}" Volume {volume_number}.
-        Return a JSON object with exact fields like "series_name", "book_title", etc.
-        """
-        return self._make_request(prompt)
-
-    def correct_series_name(self, series_name: str, project_state: Union[ProjectState, None] = None) -> list[str]:
-        # This method is not strictly necessary if get_comprehensive_series_info works well.
-        # For now, we'll just return the original name.
-        return [series_name]
-
-
-def process_book_data(
-    raw_data: dict,
-    volume_number: int,
-    google_books_api: Union[GoogleBooksAPI, None] = None,
-    project_state: Union[ProjectState, None] = None,
-) -> BookInfo:
-    """Process raw API data into structured BookInfo"""
-    warnings = []
-
-    # Extract and validate data
-    series_name = DataValidator.format_title(raw_data.get("series_name", ""))
-    book_title = DataValidator.format_title(
-        raw_data.get("book_title", f"{series_name} (Volume {volume_number})"),
-    )
-
-    # Ensure series name is in the title if missing
-    if series_name and series_name.lower() not in book_title.lower():
-        book_title = f"{series_name}: {book_title}"
-
-    # Handle authors - ensure they're in list format
-    authors_raw = raw_data.get("authors", [])
-    if isinstance(authors_raw, str):
-        # Check if the string contains multiple authors separated by commas
-        # Look for patterns that indicate multiple authors vs single author with comma
-        if ", " in authors_raw:
-            # Check if it's likely a single author in "Last, First" format
-            parts = authors_raw.split(", ")
-            if (
-                len(parts) == EXPECTED_NAME_PARTS
-                and len(parts[0].split()) <= MAX_NAME_PARTS
-                and len(parts[1].split()) <= MAX_NAME_PARTS
-            ):
-                # Likely a single author in "Last, First" format
-                authors = [authors_raw.strip()]
-            else:
-                # Likely multiple authors, split by comma
-                authors = [author.strip() for author in authors_raw.split(",")]
-        else:
-            # No commas, treat as single author
-            authors = [authors_raw.strip()]
-    else:
-        authors = authors_raw
-
-    # Validate MSRP
-    msrp_cost = raw_data.get("msrp_cost")
-    if msrp_cost is None:
-        warnings.append("No MSRP found")
-    else:
-        try:
-            msrp_cost = float(msrp_cost)
-            if msrp_cost < MIN_MSRP:
-                rounded_msrp = 10.0
-                warnings.append(
-                    f"MSRP ${msrp_cost:.2f} is below minimum $10 (rounded up to ${rounded_msrp:.2f})",
-                )
-            elif msrp_cost > MAX_MSRP:
-                warnings.append(f"MSRP ${msrp_cost:.2f} exceeds typical maximum $30")
-        except (ValueError, TypeError):
-            warnings.append("Invalid MSRP format")
-            msrp_cost = None
-
-    # Validate copyright year
-    copyright_year = None
-    date_str = str(raw_data.get("copyright_year", ""))
-    if date_str:
-
-        year_patterns = [r"\b(19|20)\d{2}\b", r"\b\d{4}\b"]
-        for pattern in year_patterns:
-            matches = re.findall(pattern, date_str)
-            if matches:
-                year = int(matches[0])
-                if MIN_COPYRIGHT_YEAR <= year <= datetime.now(timezone.utc).year + 1:
-                    copyright_year = year
-                    break
-    if not copyright_year:
-        warnings.append("Could not extract valid copyright year")
-
-    # Handle genres
-    genres_raw = raw_data.get("genres", [])
-    genres = (
-        [genre.strip() for genre in genres_raw.split(",")]
-        if isinstance(genres_raw, str)
-        else genres_raw
-    )
-
-    # Extract cover image URL if available from DeepSeek data
-    cover_image_url = raw_data.get("cover_image_url")
-
-    # If no cover image from DeepSeek and Google Books API is available, try to fetch it
-    if not cover_image_url and google_books_api:
-        isbn = raw_data.get("isbn_13")
-        if isbn:
-            cover_image_url = google_books_api.get_cover_image_url(
-                isbn,
-                project_state=project_state,
-            )
-            # Debug: Print cover image status
-            if cover_image_url:
-                pass
-            else:
-                pass
-
-    return BookInfo(
-        series_name=series_name,
-        volume_number=volume_number,
-        book_title=book_title,
-        authors=authors,
-        msrp_cost=msrp_cost,
-        isbn_13=raw_data.get("isbn_13"),
-        publisher_name=raw_data.get("publisher_name"),
-        copyright_year=copyright_year,
-        description=raw_data.get("description"),
-        physical_description=raw_data.get("physical_description"),
-        genres=genres,
-        warnings=warnings,
-        cover_image_url=cover_image_url,
-    )
-def generate_book_info(book: BookInfo, project_state: ProjectState) -> Union[dict, None]:
-    series_name = book.series_name
-    volume_number = book.volume
-    series_info = project_state.get_cached_series_info(series_name)
-    if not series_info:
-        return None
-    prompt = f"""Generate detailed book information for "{series_name}" volume {volume_number}.
-
-Series information: {json.dumps(series_info)}
-
-Return the result as a valid JSON object with the following structure:
-
-{{
-    "title": "Book Title",
-    "authors": ["Author1", "Author2"],
-    "description": "Book description",
-    "isbn": "ISBN if available",
-    "publisher": "Publisher",
-    "publication_date": "Publication date",
-    "page_count": 200,
-    "language": "Language",
-    "cover_image_url": "URL if available"
-}}
-
-Ensure the JSON is valid and contains all the keys."""
-    # Check cache
-    cached = project_state.get_cached_response(prompt, volume_number)
-    if cached:
-        try:
-            return json.loads(cached)
-        except:
-            pass
-    # Generate
-    try:
-        response = vertex_ai_client.generate_book_description(prompt)
-        parsed = json.loads(response)
-        project_state.cache_response(prompt, volume_number, json.dumps(parsed))
-        return parsed
-    except Exception as e:
-        print(f"Vertex AI failed: {e}")
-        try:
-            response = deepseek_client.generate_book_description(prompt)
-            parsed = json.loads(response)
-            project_state.cache_response(prompt, volume_number, json.dumps(parsed))
-            return parsed
-        except Exception as e2:
-            print(f"DeepSeek failed: {e2}")
-            return None

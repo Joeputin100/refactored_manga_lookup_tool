@@ -1,10 +1,11 @@
-#!/usr/bin/env python3
+from typing import Optional
 import json
 import os
 import sqlite3
 import time
-
 import requests
+#!/usr/bin/env python3
+
 
 """
 MangaDex Cover Image Fetcher
@@ -32,7 +33,7 @@ class MangaDexCoverFetcher:
 
         self.last_request_time = time.time()
 
-    def search_manga(self, title: str) -> dict | None:
+    def search_manga(self, title: str) -> Optional[dict]:
         """Search for manga by title"""
         self._rate_limit()
 
@@ -57,7 +58,7 @@ class MangaDexCoverFetcher:
 
         return None
 
-    def get_cover_url(self, manga_data: dict) -> str | None:
+    def get_cover_url(self, manga_data: dict) -> Optional[str]:
         """Extract cover image URL from manga data"""
         try:
             relationships = manga_data.get("relationships", [])
@@ -75,7 +76,7 @@ class MangaDexCoverFetcher:
             print(f"Error getting cover URL: {e}")
         return None
 
-    def download_and_cache_image(self, image_url: str, series_name: str) -> str | None:
+    def download_and_cache_image(self, image_url: str, series_name: str) -> Optional[str]:
         """Download image and cache locally with safe file path construction"""
         if not image_url:
             return None
@@ -116,7 +117,7 @@ class MangaDexCoverFetcher:
             print(f"✗ Error downloading image for '{series_name}': {e}")
             return None
 
-    def fetch_cover(self, series_name: str, volume_number: int = 1) -> str | None:
+    def fetch_cover(self, series_name: str, volume_number: int = 1) -> Optional[str]:
         """Fetch and cache cover image for a manga series"""
         print(f"Searching MangaDex for '{series_name}'...")
 

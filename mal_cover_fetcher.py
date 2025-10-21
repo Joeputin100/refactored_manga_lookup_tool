@@ -1,3 +1,7 @@
+from typing import Optional
+import sqlite3
+import time
+import requests
 #!/usr/bin/env python3
 """
 MyAnimeList Cover Image Fetcher
@@ -6,10 +10,7 @@ Uses Jikan API to fetch manga cover images from MyAnimeList.
 Downloads and caches images locally.
 """
 
-import sqlite3
-import time
 
-import requests
 
 
 class MALCoverFetcher:
@@ -30,7 +31,7 @@ class MALCoverFetcher:
 
         self.last_request_time = time.time()
 
-    def search_manga(self, title: str) -> dict | None:
+    def search_manga(self, title: str) -> Optional[dict]:
         """Search for manga by title"""
         self._rate_limit()
 
@@ -55,7 +56,7 @@ class MALCoverFetcher:
 
         return None
 
-    def get_cover_url(self, manga_data: dict) -> str | None:
+    def get_cover_url(self, manga_data: dict) -> Optional[str]:
         """Extract cover image URL from manga data"""
         try:
             images = manga_data.get("images", {})
@@ -65,7 +66,7 @@ class MALCoverFetcher:
         except Exception:
             return None
 
-    def download_and_cache_image(self, image_url: str, series_name: str) -> str | None:
+    def download_and_cache_image(self, image_url: str, series_name: str) -> Optional[str]:
         """Download image and cache locally - return direct URL for Streamlit Cloud"""
         if not image_url:
             return None
@@ -80,7 +81,7 @@ class MALCoverFetcher:
             print(f"✗ Error processing image URL for '{series_name}': {e}")
             return None
 
-    def fetch_cover(self, series_name: str, volume_number: int = 1) -> str | None:
+    def fetch_cover(self, series_name: str, volume_number: int = 1) -> Optional[str]:
         """Fetch and cache cover image for a manga series"""
         print(f"Searching MAL for '{series_name}'...")
 

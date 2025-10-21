@@ -222,7 +222,7 @@ def initialize_precached_data():
         # Cache the series info
         try:
             st.session_state.project_state.cache_series_info(series, cached_info)
-        except Exception as e:
+        except Exception:
             # Silently fail if caching doesn't work
             pass
 
@@ -660,7 +660,6 @@ def display_volume_input():
             return
 
         # Clean the input
-        original_volume_range = volume_range
 
         try:
             volumes = parse_volume_range(volume_range)
@@ -699,7 +698,7 @@ def display_volume_input():
                 numeric_part = ''.join(c for c in st.session_state.start_barcode if c.isdigit())
                 if numeric_part:
                     start_num = int(numeric_part)
-                    current_start_num = start_num + total_volumes_so_far
+                    current_start_num = start_num
                     current_start_barcode = st.session_state.start_barcode.replace(numeric_part, str(current_start_num).zfill(len(numeric_part)))
                     current_series["barcodes"] = generate_sequential_barcodes(
                         current_start_barcode,
