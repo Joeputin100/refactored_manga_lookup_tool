@@ -858,50 +858,6 @@ class VertexAIAPI:
         vertexai.init(project=self.project_id, location=self.location)
 
 
-def generate_sequential_barcodes(start_isbn: str, count: int) -> list[str]:
-    """
-    Generate sequential barcodes starting from a given ISBN.
-    
-    Args:
-        start_isbn: Starting ISBN-13 number
-        count: Number of sequential barcodes to generate
-        
-    Returns:
-        List of sequential ISBN-13 numbers
-    """
-    import re
-    
-    # Remove any non-digit characters
-    clean_isbn = re.sub(r"[^\\d]", "", start_isbn)
-    
-    # Ensure it's a 13-digit ISBN
-    if len(clean_isbn) != 13:
-        raise ValueError(f"Invalid ISBN-13 format: {start_isbn}")
-    
-    barcodes = []
-    base_number = int(clean_isbn[:-1])  # Remove check digit
-    
-    for i in range(count):
-        current_number = base_number + i
-        
-        # Calculate ISBN-13 check digit
-        digits = [int(d) for d in str(current_number)]
-        
-        # ISBN-13 check digit calculation
-        sum_ = 0
-        for j, digit in enumerate(digits):
-            if j % 2 == 0:
-                sum_ += digit
-            else:
-                sum_ += digit * 3
-        
-        check_digit = (10 - (sum_ % 10)) % 10
-        
-        # Create full ISBN-13
-        full_isbn = f"{current_number}{check_digit}"
-        barcodes.append(full_isbn)
-    
-    return barcodes
 
 def parse_volume_range(volume_range: str) -> list[int]:
     """

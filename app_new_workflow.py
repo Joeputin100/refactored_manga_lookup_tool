@@ -28,7 +28,6 @@ from manga_lookup import (
     GoogleBooksAPI,
     VertexAIAPI,
     ProjectState,
-    generate_sequential_barcodes,
     generate_sequential_general_barcodes,
     parse_volume_range,
     validate_barcode,
