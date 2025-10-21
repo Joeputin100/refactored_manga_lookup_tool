@@ -383,40 +383,54 @@ def search_series_info(series_name: str):
     except Exception as e:
         st.warning(f"Cache check failed: {e}")
 
-    # Debug: Check if Vertex AI is properly configured
+    # Initialize APIs with proper error handling
+    vertex_api = None
+    deepseek_api = None
+
+    # Try to initialize Vertex AI
     try:
         vertex_api = VertexAIAPI()
         st.info(f"✅ Vertex AI API initialized successfully for: {series_name}")
     except Exception as e:
         st.error(f"❌ Vertex AI initialization failed: {e}")
-        st.info("Falling back to DeepSeek API...")
 
-    # Try DeepSeek API first
+    # Try to initialize DeepSeek
     try:
         deepseek_api = DeepSeekAPI()
-        suggestions = deepseek_api.correct_series_name(series_name)
-        for suggestion in suggestions[:5]:
-            book_data = deepseek_api.get_book_info(suggestion, 1, st.session_state.project_state)
-            if book_data:
-                results.append({
-                    "name": suggestion,
-                    "source": "DeepSeek",
-                    "authors": book_data.get("authors", []),
-                    "volume_count": book_data.get("number_of_extant_volumes", 0),
-                    "summary": book_data.get("description", ""),
-                    "cover_url": None,
-                    "additional_info": {
-                        "genres": book_data.get("genres", []),
-                        "publisher": book_data.get("publisher_name", ""),
-                    }
-                })
-    except Exception as ds_e:
-        st.error(f"DeepSeek API failed: {ds_e}")
+        st.info(f"✅ DeepSeek API initialized successfully for: {series_name}")
+    except Exception as e:
+        st.error(f"❌ DeepSeek API initialization failed: {e}")
 
-    # Fallback to Vertex AI
-    if not results:
+    # If no APIs are available, show warning and return
+    if not vertex_api and not deepseek_api:
+        st.error("❌ No APIs are available. Cannot search for series information.")
+        return results
+
+    # Try DeepSeek API first if available
+    if deepseek_api:
         try:
-            vertex_api = VertexAIAPI()
+            suggestions = deepseek_api.correct_series_name(series_name)
+            for suggestion in suggestions[:5]:
+                book_data = deepseek_api.get_book_info(suggestion, 1, st.session_state.project_state)
+                if book_data:
+                    results.append({
+                        "name": suggestion,
+                        "source": "DeepSeek",
+                        "authors": book_data.get("authors", []),
+                        "volume_count": book_data.get("number_of_extant_volumes", 0),
+                        "summary": book_data.get("description", ""),
+                        "cover_url": None,
+                        "additional_info": {
+                            "genres": book_data.get("genres", []),
+                            "publisher": book_data.get("publisher_name", ""),
+                        }
+                    })
+        except Exception as ds_e:
+            st.error(f"DeepSeek API search failed: {ds_e}")
+
+    # Fallback to Vertex AI if available and no results yet
+    if not results and vertex_api:
+        try:
             series_info = vertex_api.get_comprehensive_series_info(series_name, st.session_state.project_state)
 
             if series_info and series_info.get("corrected_series_name"):
@@ -449,7 +463,7 @@ def search_series_info(series_name: str):
                         "additional_info": {}
                     })
         except Exception as e:
-            st.warning(f"Vertex AI failed: {e}.")
+            st.warning(f"Vertex AI search failed: {e}.")
 
     # Try Google Books for additional series information
     try:

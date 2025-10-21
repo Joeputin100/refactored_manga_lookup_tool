@@ -724,14 +724,20 @@ class DeepSeekAPI:
 
 
 class GoogleBooksAPI:
-    """Handles Google Books API interactions for cover image retrieval using keyless queries"""
+    """Handles Google Books API interactions for cover image retrieval using API key"""
 
     def __init__(self):
-        # Google Books API configuration - uses keyless access
-        self.base_url = "https://www.googleapis.com/books/v1/volumes"
+        # Google Books API configuration
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
+                self.api_key = st.secrets["GEMINI_API_KEY"]
+            else:
+                self.api_key = os.getenv("GEMINI_API_KEY")
+        except ImportError:
+            self.api_key = os.getenv("GEMINI_API_KEY")
 
-        # For Google Books API, we use keyless access so no API key is needed
-        # The GEMINI_API_KEY is used for Vertex AI/Gemini API calls, not Google Books
+        self.base_url = "https://www.googleapis.com/books/v1/volumes"
 
     def _select_cover_image(self, image_links: dict) -> Union[str, None]:
         """Select the best available cover image from Google Books image links."""
@@ -755,11 +761,11 @@ class GoogleBooksAPI:
             if cached_url:
                 return cached_url
 
-        # Construct the keyless API URL
-        url = f"{self.base_url}?q=isbn:{isbn}&maxResults=1"
+        # Construct the API URL with key
+        url = f"{self.base_url}?q=isbn:{isbn}&maxResults=1&key={self.api_key}"
 
         try:
-            # Make the keyless HTTP request
+            # Make the HTTP request with API key
             response = requests.get(url, timeout=10, verify=True)
             response.raise_for_status()
             data = response.json()
@@ -830,19 +836,22 @@ class VertexAIAPI:
     def __init__(self):
         try:
             import streamlit as st
-            if hasattr(st, 'secrets') and 'VERTEX_AI_PROJECT_ID' in st.secrets:
-                self.project_id = st.secrets["VERTEX_AI_PROJECT_ID"]
+            if hasattr(st, 'secrets') and 'GCLOUD_SERVICE_KEY' in st.secrets:
+                self.service_account_key = st.secrets["GCLOUD_SERVICE_KEY"]
+                self.project_id = st.secrets.get("VERTEX_AI_PROJECT_ID")
                 self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
             else:
+                self.service_account_key = os.getenv("GCLOUD_SERVICE_KEY")
                 self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
                 self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
         except ImportError:
+            self.service_account_key = os.getenv("GCLOUD_SERVICE_KEY")
             self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
             self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
-        
-        if not self.project_id:
-            raise ValueError("VERTEX_AI_PROJECT_ID must be set.")
-        
+
+        if not self.service_account_key:
+            raise ValueError("GCLOUD_SERVICE_KEY must be set.")
+
         import vertexai
         vertexai.init(project=self.project_id, location=self.location)
 
