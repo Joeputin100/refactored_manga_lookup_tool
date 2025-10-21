@@ -985,6 +985,41 @@ def validate_barcode(barcode: str) -> bool:
         return False
 
 
+def validate_general_barcode(barcode: str) -> bool:
+    """
+    Validate general barcode format for manga collection.
+
+    Requirements:
+    - 1-20 alphanumeric characters
+    - Must end with a number
+    - May contain hyphens
+
+    Args:
+        barcode: The barcode string to validate
+
+    Returns:
+        True if valid general barcode, False otherwise
+    """
+    import re
+
+    if not barcode or not isinstance(barcode, str):
+        return False
+
+    # Check length
+    if len(barcode) < 1 or len(barcode) > 20:
+        return False
+
+    # Check if it ends with a number
+    if not barcode[-1].isdigit():
+        return False
+
+    # Check for valid characters (alphanumeric and hyphens only)
+    if not re.match(r'^[a-zA-Z0-9\-]+$', barcode):
+        return False
+
+    return True
+
+
 def validate_series_name(series_name: str) -> bool:
     """
     Validate if a series name is reasonable for manga lookup.

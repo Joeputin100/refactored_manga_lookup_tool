@@ -31,6 +31,7 @@ from manga_lookup import (
     generate_sequential_barcodes,
     parse_volume_range,
     validate_barcode,
+    validate_general_barcode,
     validate_series_name,
     sanitize_series_name,
 )
@@ -280,7 +281,7 @@ def display_barcode_input():
             return
 
         # Validate barcode format using enhanced validation
-        if not validate_barcode(barcode_input):
+        if not validate_general_barcode(barcode_input):
             st.error("Invalid barcode format. Barcode must be 1-20 alphanumeric characters, ending with a number, and may contain hyphens.")
             return
 
