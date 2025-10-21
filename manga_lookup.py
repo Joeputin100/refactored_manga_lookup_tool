@@ -838,24 +838,54 @@ class VertexAIAPI:
     def __init__(self):
         try:
             import streamlit as st
-            if hasattr(st, 'secrets') and 'GCLOUD_SERVICE_KEY' in st.secrets:
-                self.service_account_key = st.secrets["GCLOUD_SERVICE_KEY"]
-                self.project_id = st.secrets.get("VERTEX_AI_PROJECT_ID")
-                self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
+            if hasattr(st, 'secrets') and 'vertex_ai' in st.secrets:
+                # Read from [vertex_ai] section in secrets.toml
+                vertex_secrets = st.secrets["vertex_ai"]
+                self.project_id = vertex_secrets.get("project_id")
+                self.location = vertex_secrets.get("location", "us-central1")
+                # For service account key, we need the entire JSON content
+                self.service_account_info = {
+                    "type": vertex_secrets.get("type"),
+                    "project_id": vertex_secrets.get("project_id"),
+                    "private_key_id": vertex_secrets.get("private_key_id"),
+                    "private_key": vertex_secrets.get("private_key"),
+                    "client_email": vertex_secrets.get("client_email"),
+                    "client_id": vertex_secrets.get("client_id"),
+                    "auth_uri": vertex_secrets.get("auth_uri"),
+                    "token_uri": vertex_secrets.get("token_uri"),
+                    "auth_provider_x509_cert_url": vertex_secrets.get("auth_provider_x509_cert_url"),
+                    "client_x509_cert_url": vertex_secrets.get("client_x509_cert_url"),
+                    "universe_domain": vertex_secrets.get("universe_domain", "googleapis.com")
+                }
             else:
-                self.service_account_key = os.getenv("GCLOUD_SERVICE_KEY")
                 self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
                 self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+                self.service_account_info = None
         except ImportError:
-            self.service_account_key = os.getenv("GCLOUD_SERVICE_KEY")
             self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
             self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+            self.service_account_info = None
 
-        if not self.service_account_key:
-            raise ValueError("GCLOUD_SERVICE_KEY must be set.")
+        if not self.project_id:
+            raise ValueError("VERTEX_AI_PROJECT_ID must be set.")
 
         import vertexai
-        vertexai.init(project=self.project_id, location=self.location)
+
+        # Initialize Vertex AI with service account credentials if available
+        if self.service_account_info:
+            # Use service account credentials
+            from google.oauth2 import service_account
+            credentials = service_account.Credentials.from_service_account_info(
+                self.service_account_info
+            )
+            vertexai.init(
+                project=self.project_id,
+                location=self.location,
+                credentials=credentials
+            )
+        else:
+            # Fallback to default initialization
+            vertexai.init(project=self.project_id, location=self.location)
 
 
 
