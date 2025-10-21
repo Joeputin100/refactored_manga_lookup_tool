@@ -29,6 +29,7 @@ from manga_lookup import (
     VertexAIAPI,
     ProjectState,
     generate_sequential_barcodes,
+    generate_sequential_general_barcodes,
     parse_volume_range,
     validate_barcode,
     validate_general_barcode,
@@ -298,7 +299,7 @@ def display_barcode_confirmation():
 
     # Show first 3 barcodes in sequence
     try:
-        barcodes = generate_sequential_barcodes(
+        barcodes = generate_sequential_general_barcodes(
             st.session_state.start_barcode, 3
         )
         st.write("**First 3 barcodes in sequence:**")

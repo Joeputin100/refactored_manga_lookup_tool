@@ -1020,6 +1020,46 @@ def validate_general_barcode(barcode: str) -> bool:
     return True
 
 
+def generate_sequential_general_barcodes(start_barcode: str, count: int) -> list[str]:
+    """
+    Generate sequential general barcodes starting from a given barcode.
+
+    This function handles barcodes that end with numbers and increments
+    the numeric portion while preserving the prefix.
+
+    Args:
+        start_barcode: Starting barcode (e.g., "Barcode001", "T000001")
+        count: Number of sequential barcodes to generate
+
+    Returns:
+        List of sequential barcodes
+    """
+    import re
+
+    if not validate_general_barcode(start_barcode):
+        raise ValueError(f"Invalid general barcode format: {start_barcode}")
+
+    # Extract the numeric suffix
+    match = re.search(r'(\d+)$', start_barcode)
+    if not match:
+        raise ValueError(f"Barcode does not end with a number: {start_barcode}")
+
+    numeric_part = match.group(1)
+    prefix = start_barcode[:-len(numeric_part)]
+
+    # Convert to integer for incrementing
+    start_number = int(numeric_part)
+
+    barcodes = []
+    for i in range(count):
+        current_number = start_number + i
+        # Format with same number of digits as original
+        formatted_number = str(current_number).zfill(len(numeric_part))
+        barcodes.append(f"{prefix}{formatted_number}")
+
+    return barcodes
+
+
 def validate_series_name(series_name: str) -> bool:
     """
     Validate if a series name is reasonable for manga lookup.
