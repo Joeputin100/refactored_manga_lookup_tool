@@ -902,3 +902,45 @@ def generate_sequential_barcodes(start_isbn: str, count: int) -> list[str]:
         barcodes.append(full_isbn)
     
     return barcodes
+
+def parse_volume_range(volume_range: str) -> list[int]:
+    """
+    Parse a volume range string into a list of volume numbers.
+    
+    Args:
+        volume_range: String like "1-5" or "1,3,5" or "1"
+        
+    Returns:
+        List of volume numbers
+    """
+    import re
+    
+    if not volume_range:
+        return []
+    
+    # Clean the input
+    volume_range = "".join(c for c in volume_range if c.isdigit() or c in "-,")
+    
+    try:
+        volumes = []
+        
+        # Handle ranges like "1-5"
+        if "-" in volume_range:
+            start, end = volume_range.split("-")
+            start_num = int(start)
+            end_num = int(end)
+            volumes.extend(range(start_num, end_num + 1))
+        
+        # Handle comma-separated values like "1,3,5"
+        elif "," in volume_range:
+            volumes = [int(v.strip()) for v in volume_range.split(",")]
+        
+        # Handle single number
+        else:
+            volumes = [int(volume_range)]
+        
+        return sorted(set(volumes))  # Remove duplicates and sort
+        
+    except (ValueError, IndexError):
+        # If parsing fails, return empty list
+        return []
