@@ -691,7 +691,7 @@ def display_volume_input():
                 # Generate the starting barcode for this series
                 current_start_barcode = f"{prefix}{current_start_num:0{num_digits}d}"
 
-                current_series["barcodes"] = generate_sequential_barcodes(
+                current_series["barcodes"] = generate_sequential_general_barcodes(
                     current_start_barcode,
                     len(volumes)
                 )
@@ -702,7 +702,7 @@ def display_volume_input():
                     start_num = int(numeric_part)
                     current_start_num = start_num
                     current_start_barcode = st.session_state.start_barcode.replace(numeric_part, str(current_start_num).zfill(len(numeric_part)))
-                    current_series["barcodes"] = generate_sequential_barcodes(
+                    current_series["barcodes"] = generate_sequential_general_barcodes(
                         current_start_barcode,
                         len(volumes)
                     )
