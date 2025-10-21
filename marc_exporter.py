@@ -36,7 +36,7 @@ def export_books_to_marc(books: list) -> bytes:
     return marc_data
 
 
-def create_marc_record(book) -> Record | None:
+def create_marc_record(book) -> Record:
     """
     Create a MARC21 record from a BookInfo object.
 
