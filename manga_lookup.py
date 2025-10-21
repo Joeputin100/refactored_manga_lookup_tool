@@ -944,3 +944,42 @@ def parse_volume_range(volume_range: str) -> list[int]:
     except (ValueError, IndexError):
         # If parsing fails, return empty list
         return []
+
+def validate_barcode(barcode: str) -> bool:
+    """
+    Validate if a barcode is a valid ISBN-13 format.
+    
+    Args:
+        barcode: The barcode string to validate
+        
+    Returns:
+        True if valid ISBN-13, False otherwise
+    """
+    import re
+    
+    # Remove any non-digit characters
+    clean_barcode = re.sub(r"[^\\d]", "", barcode)
+    
+    # Check if it's 13 digits
+    if len(clean_barcode) != 13:
+        return False
+    
+    # Validate ISBN-13 check digit
+    try:
+        digits = [int(d) for d in clean_barcode]
+        
+        # ISBN-13 check digit calculation
+        sum_ = 0
+        for i, digit in enumerate(digits[:-1]):  # Exclude check digit
+            if i % 2 == 0:
+                sum_ += digit
+            else:
+                sum_ += digit * 3
+        
+        check_digit = (10 - (sum_ % 10)) % 10
+        
+        # Compare with actual check digit
+        return check_digit == digits[-1]
+        
+    except (ValueError, IndexError):
+        return False
