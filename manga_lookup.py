@@ -457,24 +457,25 @@ class DeepSeekAPI:
     """Handles DeepSeek API interactions with rate limiting and error handling"""
 
     def __init__(self):
+        # DeepSeek API configuration
         try:
             import streamlit as st
-            if hasattr(st, 'secrets') and 'VERTEX_AI_PROJECT_ID' in st.secrets:
-                self.project_id = st.secrets["VERTEX_AI_PROJECT_ID"]
-                self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
+            if hasattr(st, 'secrets') and 'DEEPSEEK_API_KEY' in st.secrets:
+                self.api_key = st.secrets["DEEPSEEK_API_KEY"]
+                self.base_url = st.secrets.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+                self.model = st.secrets.get("DEEPSEEK_MODEL", "deepseek-chat")
             else:
-                self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
-                self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+                self.api_key = os.getenv("DEEPSEEK_API_KEY")
+                self.base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+                self.model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
         except ImportError:
-            self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
-            self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
-        
-        if not self.project_id:
-            raise ValueError("VERTEX_AI_PROJECT_ID must be set.")
-        
-        import vertexai
-        vertexai.init(project=self.project_id, location=self.location)
-        self.model = "deepseek-chat"  # Using DeepSeek-V3.2-Exp (non-thinking mode)
+            self.api_key = os.getenv("DEEPSEEK_API_KEY")
+            self.base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+            self.model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+
+        if not self.api_key:
+            raise ValueError("DEEPSEEK_API_KEY must be set.")
+
         self.last_request_time = time.time()
 
     def correct_series_name(self, series_name: str) -> list[str]:
@@ -726,23 +727,11 @@ class GoogleBooksAPI:
     """Handles Google Books API interactions for cover image retrieval using keyless queries"""
 
     def __init__(self):
-        try:
-            import streamlit as st
-            if hasattr(st, 'secrets') and 'VERTEX_AI_PROJECT_ID' in st.secrets:
-                self.project_id = st.secrets["VERTEX_AI_PROJECT_ID"]
-                self.location = st.secrets.get("VERTEX_AI_LOCATION", "us-central1")
-            else:
-                self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
-                self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
-        except ImportError:
-            self.project_id = os.getenv("VERTEX_AI_PROJECT_ID")
-            self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
-        
-        if not self.project_id:
-            raise ValueError("VERTEX_AI_PROJECT_ID must be set.")
-        
-        import vertexai
-        vertexai.init(project=self.project_id, location=self.location)
+        # Google Books API configuration - uses keyless access
+        self.base_url = "https://www.googleapis.com/books/v1/volumes"
+
+        # For Google Books API, we use keyless access so no API key is needed
+        # The GEMINI_API_KEY is used for Vertex AI/Gemini API calls, not Google Books
 
     def _select_cover_image(self, image_links: dict) -> Union[str, None]:
         """Select the best available cover image from Google Books image links."""
