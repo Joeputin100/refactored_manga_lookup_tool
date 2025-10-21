@@ -948,26 +948,26 @@ def parse_volume_range(volume_range: str) -> list[int]:
 def validate_barcode(barcode: str) -> bool:
     """
     Validate if a barcode is a valid ISBN-13 format.
-    
+
     Args:
         barcode: The barcode string to validate
-        
+
     Returns:
         True if valid ISBN-13, False otherwise
     """
     import re
-    
+
     # Remove any non-digit characters
     clean_barcode = re.sub(r"[^\\d]", "", barcode)
-    
+
     # Check if it's 13 digits
     if len(clean_barcode) != 13:
         return False
-    
+
     # Validate ISBN-13 check digit
     try:
         digits = [int(d) for d in clean_barcode]
-        
+
         # ISBN-13 check digit calculation
         sum_ = 0
         for i, digit in enumerate(digits[:-1]):  # Exclude check digit
@@ -975,11 +975,64 @@ def validate_barcode(barcode: str) -> bool:
                 sum_ += digit
             else:
                 sum_ += digit * 3
-        
+
         check_digit = (10 - (sum_ % 10)) % 10
-        
+
         # Compare with actual check digit
         return check_digit == digits[-1]
-        
+
     except (ValueError, IndexError):
         return False
+
+
+def validate_series_name(series_name: str) -> bool:
+    """
+    Validate if a series name is reasonable for manga lookup.
+
+    Args:
+        series_name: The series name to validate
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not series_name or not isinstance(series_name, str):
+        return False
+
+    # Check minimum length
+    if len(series_name.strip()) < 2:
+        return False
+
+    # Check maximum length (reasonable for manga titles)
+    if len(series_name) > 100:
+        return False
+
+    # Check for reasonable characters (allow letters, numbers, spaces, common punctuation)
+    if not re.match(r'^[\w\s\-\.\,\'\(\)\!\?\:]+$', series_name):
+        return False
+
+    return True
+
+
+def sanitize_series_name(series_name: str) -> str:
+    """
+    Sanitize a series name by removing extra whitespace and normalizing.
+
+    Args:
+        series_name: The series name to sanitize
+
+    Returns:
+        Sanitized series name
+    """
+    if not series_name:
+        return ""
+
+    # Remove leading/trailing whitespace
+    sanitized = series_name.strip()
+
+    # Normalize multiple spaces to single space
+    sanitized = re.sub(r'\s+', ' ', sanitized)
+
+    # Remove any control characters
+    sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', sanitized)
+
+    return sanitized
