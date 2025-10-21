@@ -517,7 +517,7 @@ def search_series_info(series_name: str):
     return results
 
 
-def fetch_cover_for_series(series_name: str) -> str | None:
+def fetch_cover_for_series(series_name: str):
     """Fetch cover image URL for a series"""
     # Try MAL first
     try:
