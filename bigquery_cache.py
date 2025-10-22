@@ -172,7 +172,7 @@ class BigQueryCache:
                 "spinoff_series": series_info.get("spinoff_series", []),
                 "alternate_editions": series_info.get("alternate_editions", []),
                 "cover_image_url": series_info.get("cover_image_url"),
-                "last_updated": datetime.utcnow(),
+                "last_updated": datetime.utcnow().isoformat(),
                 "api_source": api_source,
             }
 
@@ -249,7 +249,7 @@ class BigQueryCache:
                 "genres": volume_info.get("genres", []),
                 "msrp_cost": volume_info.get("msrp_cost"),
                 "cover_image_url": volume_info.get("cover_image_url"),
-                "last_updated": datetime.utcnow(),
+                "last_updated": datetime.utcnow().isoformat(),
                 "api_source": api_source,
             }
 
