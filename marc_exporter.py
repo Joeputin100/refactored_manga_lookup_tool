@@ -8,7 +8,7 @@ Exports manga book data to MARC21 format for library systems.
 import re
 from datetime import datetime
 
-from pymarc import Field, Record
+from pymarc import Field, Record, Subfield
 
 
 def export_books_to_marc(books: list) -> bytes:
@@ -182,14 +182,18 @@ def add_variable_fields(record: Record, book) -> None:
         record.add_field(Field(
             tag='020',
             indicators=[' ', ' '],
-            subfields=['a', book.isbn_13]
+            subfields=[Subfield('a', book.isbn_13)]
         ))
 
     # 040 - Cataloging Source
     record.add_field(Field(
         tag='040',
         indicators=[' ', ' '],
-        subfields=['a', 'MANG', 'c', 'MANG', 'e', 'rda']
+        subfields=[
+            Subfield('a', 'MANG'),
+            Subfield('c', 'MANG'),
+            Subfield('e', 'rda')
+        ]
     ))
 
     # 100 - Main Entry - Personal Name (Author)
@@ -198,7 +202,7 @@ def add_variable_fields(record: Record, book) -> None:
         record.add_field(Field(
             tag='100',
             indicators=['1', ' '],
-            subfields=['a', primary_author]
+            subfields=[Subfield('a', primary_author)]
         ))
 
     # 245 - Title Statement
@@ -209,7 +213,7 @@ def add_variable_fields(record: Record, book) -> None:
     record.add_field(Field(
         tag='250',
         indicators=[' ', ' '],
-        subfields=['a', 'First edition']
+        subfields=[Subfield('a', 'First edition')]
     ))
 
     # 260 - Publication, Distribution, etc.
@@ -225,7 +229,10 @@ def add_variable_fields(record: Record, book) -> None:
         record.add_field(Field(
             tag='490',
             indicators=['1', ' '],
-            subfields=['a', book.series_name, 'v', str(book.volume_number)]
+            subfields=[
+                Subfield('a', book.series_name),
+                Subfield('v', str(book.volume_number))
+            ]
         ))
 
     # 520 - Summary, etc.
@@ -238,7 +245,7 @@ def add_variable_fields(record: Record, book) -> None:
         record.add_field(Field(
             tag='520',
             indicators=[' ', ' '],
-            subfields=['a', clean_desc]
+            subfields=[Subfield('a', clean_desc)]
         ))
 
     # 650 - Subject Added Entry - Topical Term
@@ -246,14 +253,17 @@ def add_variable_fields(record: Record, book) -> None:
         record.add_field(Field(
             tag='650',
             indicators=[' ', '0'],
-            subfields=['a', genre]
+            subfields=[Subfield('a', genre)]
         ))
 
     # 655 - Index Term - Genre/Form
     record.add_field(Field(
         tag='655',
         indicators=[' ', '7'],
-        subfields=['a', 'Manga', '2', 'lcgft']
+        subfields=[
+            Subfield('a', 'Manga'),
+            Subfield('2', 'lcgft')
+        ]
     ))
 
     # 856 - Electronic Location and Access (Cover Image)
@@ -261,29 +271,32 @@ def add_variable_fields(record: Record, book) -> None:
         record.add_field(Field(
             tag='856',
             indicators=['4', '1'],
-            subfields=['u', book.cover_image_url, 'z', 'Cover image']
+            subfields=[
+                Subfield('u', book.cover_image_url),
+                Subfield('z', 'Cover image')
+            ]
         ))
 
 
 def create_title_field(book) -> Field:
     """Create 245 title field"""
-    title_parts = []
+    subfields = []
 
     # Main title
     if book.book_title:
-        title_parts.extend(['a', book.book_title])
+        subfields.append(Subfield('a', book.book_title))
     else:
-        title_parts.extend(['a', f'{book.series_name} Volume {book.volume_number}'])
+        subfields.append(Subfield('a', f'{book.series_name} Volume {book.volume_number}'))
 
     # Statement of responsibility
     if book.authors:
         authors_str = ' ; '.join(book.authors)
-        title_parts.extend(['c', authors_str])
+        subfields.append(Subfield('c', authors_str))
 
     return Field(
         tag='245',
         indicators=['1', '0'],
-        subfields=title_parts
+        subfields=subfields
     )
 
 
@@ -292,19 +305,19 @@ def create_publication_field(book) -> Field:
     subfields = []
 
     # Place of publication
-    subfields.extend(['a', '[United States]'])
+    subfields.append(Subfield('a', '[United States]'))
 
     # Publisher
     if book.publisher_name:
-        subfields.extend(['b', book.publisher_name])
+        subfields.append(Subfield('b', book.publisher_name))
     else:
-        subfields.extend(['b', 'Unknown'])
+        subfields.append(Subfield('b', 'Unknown'))
 
     # Date of publication
     if book.copyright_year:
-        subfields.extend(['c', str(book.copyright_year)])
+        subfields.append(Subfield('c', str(book.copyright_year)))
     else:
-        subfields.extend(['c', '[n.d.]'])
+        subfields.append(Subfield('c', '[n.d.]'))
 
     return Field(
         tag='260',
@@ -322,17 +335,17 @@ def create_physical_description_field(book) -> Field:
         # Try to extract page count from physical description
         page_match = re.search(r'(\d+)\s*pages?', book.physical_description, re.IGNORECASE)
         if page_match:
-            subfields.extend(['a', f'{page_match.group(1)} pages'])
+            subfields.append(Subfield('a', f'{page_match.group(1)} pages'))
         else:
-            subfields.extend(['a', 'pages'])
+            subfields.append(Subfield('a', 'pages'))
     else:
-        subfields.extend(['a', 'pages'])
+        subfields.append(Subfield('a', 'pages'))
 
     # Other physical details
-    subfields.extend(['b', 'illustrations'])
+    subfields.append(Subfield('b', 'illustrations'))
 
     # Dimensions
-    subfields.extend(['c', '19 cm'])
+    subfields.append(Subfield('c', '19 cm'))
 
     return Field(
         tag='300',

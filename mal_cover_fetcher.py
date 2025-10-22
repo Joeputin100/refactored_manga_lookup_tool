@@ -32,13 +32,13 @@ class MALCoverFetcher:
         self.last_request_time = time.time()
 
     def search_manga(self, title: str) -> Optional[dict]:
-        """Search for manga by title"""
+        """Search for manga by title, prioritizing English editions"""
         self._rate_limit()
 
         params = {
             "q": title,
             "type": "manga",
-            "limit": 5,  # Get top 5 results
+            "limit": 10,  # Get more results to find English editions
         }
 
         try:
@@ -48,13 +48,47 @@ class MALCoverFetcher:
             data = response.json()
 
             if data.get("data") and len(data["data"]) > 0:
-                # Return the first (most relevant) result
+                # Try to find English edition first
+                for manga in data["data"]:
+                    # Check if it's an English edition
+                    if self._is_english_edition(manga, title):
+                        print(f"✓ Found English edition: {manga.get('title', 'Unknown')}")
+                        return manga
+
+                # If no English edition found, return the first result
+                print(f"⚠️ No English edition found, using first result: {data['data'][0].get('title', 'Unknown')}")
                 return data["data"][0]
 
         except Exception as e:
             print(f"Error searching MAL for '{title}': {e}")
 
         return None
+
+    def _is_english_edition(self, manga: dict, original_title: str) -> bool:
+        """Check if manga is likely an English edition"""
+        title = manga.get("title", "").lower()
+
+        # Check for English publisher indicators
+        english_indicators = [
+            "viz media", "kodansha", "yen press", "seven seas", "dark horse",
+            "vertical", "tokyopop", "square enix", "udon", "one peace"
+        ]
+
+        # Check for English title patterns
+        english_title_indicators = [
+            "(english)", "(us)", "(na)", "viz", "kodansha", "yen", "seven seas"
+        ]
+
+        # Check if title matches original (likely English translation)
+        if original_title.lower() in title:
+            return True
+
+        # Check for English publisher in title
+        for indicator in english_indicators + english_title_indicators:
+            if indicator in title:
+                return True
+
+        return False
 
     def get_cover_url(self, manga_data: dict) -> Optional[str]:
         """Extract cover image URL from manga data"""

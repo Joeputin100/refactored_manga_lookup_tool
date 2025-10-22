@@ -34,13 +34,14 @@ class MangaDexCoverFetcher:
         self.last_request_time = time.time()
 
     def search_manga(self, title: str) -> Optional[dict]:
-        """Search for manga by title"""
+        """Search for manga by title, prioritizing English editions"""
         self._rate_limit()
 
         params = {
             "title": title,
-            "limit": 5,  # Get top 5 results
+            "limit": 10,  # Get more results to find English editions
             "includes[]": ["cover_art"],
+            "availableTranslatedLanguage[]": ["en"],  # Prioritize English translations
         }
 
         try:
@@ -50,13 +51,44 @@ class MangaDexCoverFetcher:
             data = response.json()
 
             if data.get("data") and len(data["data"]) > 0:
-                # Return the first (most relevant) result
+                # Try to find English edition first
+                for manga in data["data"]:
+                    # Check if it's an English edition
+                    if self._is_english_edition(manga, title):
+                        print(f"✓ Found English edition: {manga.get('attributes', {}).get('title', {}).get('en', 'Unknown')}")
+                        return manga
+
+                # If no English edition found, return the first result
+                first_title = data['data'][0].get('attributes', {}).get('title', {}).get('en', 'Unknown')
+                print(f"⚠️ No English edition found, using first result: {first_title}")
                 return data["data"][0]
 
         except Exception as e:
             print(f"Error searching MangaDex for '{title}': {e}")
 
         return None
+
+    def _is_english_edition(self, manga: dict, original_title: str) -> bool:
+        """Check if manga is likely an English edition"""
+        attributes = manga.get("attributes", {})
+        title_en = attributes.get("title", {}).get("en", "").lower()
+
+        # Check for English publisher indicators
+        english_indicators = [
+            "viz media", "kodansha", "yen press", "seven seas", "dark horse",
+            "vertical", "tokyopop", "square enix", "udon", "one peace"
+        ]
+
+        # Check if English title matches original (likely English translation)
+        if original_title.lower() in title_en:
+            return True
+
+        # Check for English publisher in title
+        for indicator in english_indicators:
+            if indicator in title_en:
+                return True
+
+        return False
 
     def get_cover_url(self, manga_data: dict) -> Optional[str]:
         """Extract cover image URL from manga data"""
