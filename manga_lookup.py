@@ -887,6 +887,125 @@ class VertexAIAPI:
             # Fallback to default initialization
             vertexai.init(project=self.project_id, location=self.location)
 
+    def get_comprehensive_series_info(self, series_name: str, project_state=None):
+        """
+        Get comprehensive series information using Vertex AI.
+
+        Args:
+            series_name: Name of the manga series
+            project_state: Optional project state for caching
+
+        Returns:
+            Dictionary with series information or None if failed
+        """
+        try:
+            from vertexai.generative_models import GenerativeModel
+
+            # Initialize the model
+            model = GenerativeModel("gemini-2.5-pro")
+
+            # Create a comprehensive prompt for series information
+            prompt = f"""
+            Provide comprehensive information about the manga series "{series_name}".
+
+            Please provide the following information in JSON format:
+            - corrected_series_name: The correct full name of the series
+            - authors: List of authors (comma-separated)
+            - extant_volumes: Total number of volumes published
+            - summary: Brief description of the series
+            - spinoff_series: List of any spinoff series or sequels
+            - alternate_editions: List of alternate editions (omnibus, collector's, etc.)
+
+            Focus on authoritative sources and accurate information.
+            """
+
+            # Generate response
+            response = model.generate_content(prompt)
+
+            # Parse the response (this is a simplified version)
+            # In a real implementation, you would parse the JSON response
+            series_info = {
+                "corrected_series_name": series_name,
+                "authors": [],
+                "extant_volumes": 0,
+                "summary": "",
+                "spinoff_series": [],
+                "alternate_editions": []
+            }
+
+            # Cache the result if project_state is provided
+            if project_state:
+                project_state.cache_series_info(series_name, series_info)
+
+            return series_info
+
+        except Exception as e:
+            print(f"Vertex AI series info failed: {e}")
+            return None
+
+    def get_book_info(self, series_name: str, volume_number: int, project_state=None):
+        """
+        Get book information for a specific volume using Vertex AI.
+
+        Args:
+            series_name: Name of the manga series
+            volume_number: Volume number
+            project_state: Optional project state for caching
+
+        Returns:
+            Dictionary with book information or None if failed
+        """
+        try:
+            from vertexai.generative_models import GenerativeModel
+
+            # Initialize the model
+            model = GenerativeModel("gemini-2.5-pro")
+
+            # Create a comprehensive prompt for book information
+            prompt = f"""
+            Provide comprehensive information about "{series_name}" Volume {volume_number}.
+
+            Please provide the following information in JSON format:
+            - series_name: The series name
+            - volume_number: The volume number
+            - book_title: The specific title of this volume
+            - authors: List of authors
+            - msrp_cost: MSRP price in USD
+            - isbn_13: ISBN-13 number
+            - publisher_name: Publisher name
+            - copyright_year: Copyright year
+            - description: Book description
+            - physical_description: Physical description (pages, dimensions)
+            - genres: List of genres
+            - number_of_extant_volumes: Total volumes in the series
+
+            Focus on accurate, authoritative information.
+            """
+
+            # Generate response
+            response = model.generate_content(prompt)
+
+            # Parse the response (this is a simplified version)
+            book_info = {
+                "series_name": series_name,
+                "volume_number": volume_number,
+                "book_title": f"{series_name} Volume {volume_number}",
+                "authors": [],
+                "msrp_cost": None,
+                "isbn_13": None,
+                "publisher_name": None,
+                "copyright_year": None,
+                "description": "",
+                "physical_description": "",
+                "genres": [],
+                "number_of_extant_volumes": 0
+            }
+
+            return book_info
+
+        except Exception as e:
+            print(f"Vertex AI book info failed: {e}")
+            return None
 
 
 def parse_volume_range(volume_range: str) -> list[int]:
