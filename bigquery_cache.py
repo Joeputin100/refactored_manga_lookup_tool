@@ -54,10 +54,24 @@ class BigQueryCache:
                 project="static-webbing-461904-c4",
                 credentials=self.credentials
             )
-            self.enabled = True
+
+            # Test if we have basic permissions
+            try:
+                # Simple test query to check permissions
+                query = "SELECT 1 as test"
+                query_job = self.client.query(query)
+                results = list(query_job)
+                self.enabled = True
+                print("✅ BigQuery permissions verified")
+            except Exception as perm_error:
+                print(f"⚠️ BigQuery permissions issue: {perm_error}")
+                print("⚠️ BigQuery caching disabled - service account needs permissions")
+                self.enabled = False
+                return
+
             self.dataset_id = "manga_lookup_cache"
-            self.series_table_id = f"{self.dataset_id}.series_info"
-            self.volumes_table_id = f"{self.dataset_id}.volume_info"
+            self.series_table_id = f"{self.client.project}.{self.dataset_id}.series_info"
+            self.volumes_table_id = f"{self.client.project}.{self.dataset_id}.volume_info"
 
             # Initialize tables if they don't exist
             self._initialize_tables()
@@ -66,70 +80,125 @@ class BigQueryCache:
             print(f"❌ BigQuery initialization failed: {e}")
             self.enabled = False
 
+    def _validate_table_name(self, table_name: str) -> bool:
+        """Validate table name to prevent SQL injection"""
+        import re
+        # Allow only alphanumeric, underscores, dots, and dashes
+        pattern = r'^[a-zA-Z0-9_.-]+$'
+        return bool(re.match(pattern, table_name))
+
     def _initialize_tables(self):
         """Initialize BigQuery tables if they don't exist"""
         if not self.enabled:
             return
 
+        # Validate table names
+        if not self._validate_table_name(self.dataset_id):
+            print(f"❌ Invalid dataset name: {self.dataset_id}")
+            self.enabled = False
+            return
+
         try:
-            # Create dataset if it doesn't exist
-            dataset = bigquery.Dataset(f"{self.client.project}.{self.dataset_id}")
-            dataset.location = "US"
-            self.client.create_dataset(dataset, exists_ok=True)
+            # Check if dataset exists first
+            try:
+                self.client.get_dataset(self.dataset_id)
+                print(f"✅ BigQuery dataset '{self.dataset_id}' exists")
+            except Exception:
+                # Dataset doesn't exist, try to create it
+                try:
+                    dataset = bigquery.Dataset(f"{self.client.project}.{self.dataset_id}")
+                    dataset.location = "US"
+                    self.client.create_dataset(dataset, exists_ok=True)
+                    print(f"✅ Created BigQuery dataset: {self.dataset_id}")
+                except Exception as create_error:
+                    print(f"⚠️ Cannot create dataset (permission issue): {create_error}")
+                    print("⚠️ BigQuery caching disabled - dataset creation permission required")
+                    self.enabled = False
+                    return
 
-            # Create series info table
-            series_schema = [
-                bigquery.SchemaField("series_name", "STRING", mode="REQUIRED"),
-                bigquery.SchemaField("corrected_name", "STRING"),
-                bigquery.SchemaField("authors", "STRING", mode="REPEATED"),
-                bigquery.SchemaField("total_volumes", "INTEGER"),
-                bigquery.SchemaField("summary", "STRING"),
-                bigquery.SchemaField("spinoff_series", "STRING", mode="REPEATED"),
-                bigquery.SchemaField("alternate_editions", "STRING", mode="REPEATED"),
-                bigquery.SchemaField("cover_image_url", "STRING"),
-                bigquery.SchemaField("last_updated", "TIMESTAMP"),
-                bigquery.SchemaField("api_source", "STRING"),
-            ]
-            series_table = bigquery.Table(self.series_table_id, schema=series_schema)
-            self.client.create_table(series_table, exists_ok=True)
+            # Create series info table if it doesn't exist
+            try:
+                self.client.get_table(self.series_table_id)
+                print(f"✅ Series table '{self.series_table_id}' exists")
+            except Exception:
+                try:
+                    series_schema = [
+                        bigquery.SchemaField("series_name", "STRING", mode="REQUIRED"),
+                        bigquery.SchemaField("corrected_name", "STRING"),
+                        bigquery.SchemaField("authors", "STRING", mode="REPEATED"),
+                        bigquery.SchemaField("total_volumes", "INTEGER"),
+                        bigquery.SchemaField("summary", "STRING"),
+                        bigquery.SchemaField("spinoff_series", "STRING", mode="REPEATED"),
+                        bigquery.SchemaField("alternate_editions", "STRING", mode="REPEATED"),
+                        bigquery.SchemaField("cover_image_url", "STRING"),
+                        bigquery.SchemaField("last_updated", "TIMESTAMP"),
+                        bigquery.SchemaField("api_source", "STRING"),
+                    ]
+                    series_table = bigquery.Table(self.series_table_id, schema=series_schema)
+                    self.client.create_table(series_table, exists_ok=True)
+                    print(f"✅ Created series table: {self.series_table_id}")
+                except Exception as table_error:
+                    print(f"❌ Cannot create series table: {table_error}")
+                    print("⚠️ BigQuery caching disabled - table creation permission required")
+                    self.enabled = False
+                    return
 
-            # Create volume info table
-            volume_schema = [
-                bigquery.SchemaField("series_name", "STRING", mode="REQUIRED"),
-                bigquery.SchemaField("volume_number", "INTEGER", mode="REQUIRED"),
-                bigquery.SchemaField("book_title", "STRING"),
-                bigquery.SchemaField("authors", "STRING", mode="REPEATED"),
-                bigquery.SchemaField("isbn_13", "STRING"),
-                bigquery.SchemaField("publisher_name", "STRING"),
-                bigquery.SchemaField("copyright_year", "INTEGER"),
-                bigquery.SchemaField("description", "STRING"),
-                bigquery.SchemaField("physical_description", "STRING"),
-                bigquery.SchemaField("genres", "STRING", mode="REPEATED"),
-                bigquery.SchemaField("msrp_cost", "FLOAT"),
-                bigquery.SchemaField("cover_image_url", "STRING"),
-                bigquery.SchemaField("last_updated", "TIMESTAMP"),
-                bigquery.SchemaField("api_source", "STRING"),
-            ]
-            volume_table = bigquery.Table(self.volumes_table_id, schema=volume_schema)
-            self.client.create_table(volume_table, exists_ok=True)
-
-            print("✅ BigQuery tables initialized")
+            # Create volume info table if it doesn't exist
+            try:
+                self.client.get_table(self.volumes_table_id)
+                print(f"✅ Volume table '{self.volumes_table_id}' exists")
+            except Exception:
+                try:
+                    volume_schema = [
+                        bigquery.SchemaField("series_name", "STRING", mode="REQUIRED"),
+                        bigquery.SchemaField("volume_number", "INTEGER", mode="REQUIRED"),
+                        bigquery.SchemaField("book_title", "STRING"),
+                        bigquery.SchemaField("authors", "STRING", mode="REPEATED"),
+                        bigquery.SchemaField("isbn_13", "STRING"),
+                        bigquery.SchemaField("publisher_name", "STRING"),
+                        bigquery.SchemaField("copyright_year", "INTEGER"),
+                        bigquery.SchemaField("description", "STRING"),
+                        bigquery.SchemaField("physical_description", "STRING"),
+                        bigquery.SchemaField("genres", "STRING", mode="REPEATED"),
+                        bigquery.SchemaField("msrp_cost", "FLOAT"),
+                        bigquery.SchemaField("cover_image_url", "STRING"),
+                        bigquery.SchemaField("last_updated", "TIMESTAMP"),
+                        bigquery.SchemaField("api_source", "STRING"),
+                    ]
+                    volume_table = bigquery.Table(self.volumes_table_id, schema=volume_schema)
+                    self.client.create_table(volume_table, exists_ok=True)
+                    print(f"✅ Created volume table: {self.volumes_table_id}")
+                except Exception as table_error:
+                    print(f"❌ Cannot create volume table: {table_error}")
+                    print("⚠️ BigQuery caching disabled - table creation permission required")
+                    self.enabled = False
+                    return
 
         except Exception as e:
             print(f"❌ BigQuery table initialization failed: {e}")
+            self.enabled = False
 
     def get_series_info(self, series_name: str) -> Optional[Dict]:
         """Get series information from cache"""
         if not self.enabled:
             return None
 
+        # Validate table name
+        if not self._validate_table_name(self.dataset_id):
+            print(f"❌ Invalid dataset name: {self.dataset_id}")
+            return None
+
         try:
-            query = f"""
-                SELECT * FROM `{self.series_table_id}`
-                WHERE series_name = @series_name
+            # Use safer query construction with table name validation
+            query = """
+                SELECT * FROM `{project}.{dataset}.series_info`
+                WHERE LOWER(series_name) = LOWER(@series_name)
                 ORDER BY last_updated DESC
                 LIMIT 1
-            """
+            """.format(
+                project=self.client.project,
+                dataset=self.dataset_id
+            )
             job_config = bigquery.QueryJobConfig(
                 query_parameters=[
                     bigquery.ScalarQueryParameter("series_name", "STRING", series_name)
@@ -172,6 +241,11 @@ class BigQueryCache:
                 "spinoff_series": series_info.get("spinoff_series", []),
                 "alternate_editions": series_info.get("alternate_editions", []),
                 "cover_image_url": series_info.get("cover_image_url"),
+                "genres": series_info.get("genres", []),
+                "publisher": series_info.get("publisher", ""),
+                "status": series_info.get("status", ""),
+                "alternative_titles": series_info.get("alternative_titles", []),
+                "adaptations": series_info.get("adaptations", []),
                 "last_updated": datetime.utcnow().isoformat(),
                 "api_source": api_source,
             }
@@ -190,13 +264,22 @@ class BigQueryCache:
         if not self.enabled:
             return None
 
+        # Validate table name
+        if not self._validate_table_name(self.dataset_id):
+            print(f"❌ Invalid dataset name: {self.dataset_id}")
+            return None
+
         try:
-            query = f"""
-                SELECT * FROM `{self.volumes_table_id}`
-                WHERE series_name = @series_name AND volume_number = @volume_number
+            # Use safer query construction with table name validation
+            query = """
+                SELECT * FROM `{project}.{dataset}.volume_info`
+                WHERE LOWER(series_name) = LOWER(@series_name) AND volume_number = @volume_number
                 ORDER BY last_updated DESC
                 LIMIT 1
-            """
+            """.format(
+                project=self.client.project,
+                dataset=self.dataset_id
+            )
             job_config = bigquery.QueryJobConfig(
                 query_parameters=[
                     bigquery.ScalarQueryParameter("series_name", "STRING", series_name),
@@ -305,7 +388,7 @@ class BigQueryCache:
 
         for series in popular_series:
             try:
-                series["last_updated"] = datetime.utcnow()
+                series["last_updated"] = datetime.utcnow().isoformat()
                 errors = self.client.insert_rows_json(self.series_table_id, [series])
                 if errors:
                     print(f"❌ Failed to pre-seed {series['series_name']}: {errors}")
