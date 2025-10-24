@@ -11,12 +11,31 @@ from typing import List, Tuple
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from manga_lookup import VertexAIAPI, ProjectState
+from manga_lookup import DeepSeekAPI, VertexAIAPI, ProjectState
 from bigquery_cache import BigQueryCache
 
 def load_volume_batch(series_name: str, volume_numbers: List[int]) -> Tuple[int, int]:
-    """Load a batch of volumes for a series"""
-    api = VertexAIAPI()
+    """Load a batch of volumes for a series - prioritize DeepSeek with Vertex AI fallback"""
+    # Initialize APIs
+    deepseek_api = None
+    vertex_api = None
+
+    try:
+        deepseek_api = DeepSeekAPI()
+        print(f'  ✅ DeepSeek API initialized')
+    except Exception as e:
+        print(f'  ❌ DeepSeek API initialization failed: {e}')
+
+    try:
+        vertex_api = VertexAIAPI()
+        print(f'  ✅ Vertex AI API initialized')
+    except Exception as e:
+        print(f'  ❌ Vertex AI API initialization failed: {e}')
+
+    if not deepseek_api and not vertex_api:
+        print(f'  ❌ No APIs available')
+        return 0, len(volume_numbers)
+
     cache = BigQueryCache()
     project_state = ProjectState()
 
@@ -40,24 +59,46 @@ def load_volume_batch(series_name: str, volume_numbers: List[int]) -> Tuple[int,
 
             print(f'  Volume {volume_num}: Loading...')
 
-            # Use Vertex AI to get volume info
-            book_info = api.get_book_info(
-                series_name=series_name,
-                volume_number=volume_num,
-                project_state=project_state
-            )
+            # Try DeepSeek API first (priority)
+            book_info = None
+            if deepseek_api:
+                try:
+                    print(f'  Volume {volume_num}: Trying DeepSeek API...')
+                    book_info = deepseek_api.get_book_info(
+                        series_name=series_name,
+                        volume_number=volume_num,
+                        project_state=project_state
+                    )
+                    if book_info:
+                        print(f'  Volume {volume_num}: ✅ Loaded via DeepSeek')
+                    else:
+                        print(f'  Volume {volume_num}: ❌ DeepSeek returned None')
+                except Exception as e:
+                    print(f'  Volume {volume_num}: ❌ DeepSeek failed - {e}')
+
+            # Fallback to Vertex AI if DeepSeek failed or unavailable
+            if not book_info and vertex_api:
+                try:
+                    book_info = vertex_api.get_book_info(
+                        series_name=series_name,
+                        volume_number=volume_num,
+                        project_state=project_state
+                    )
+                    if book_info:
+                        print(f'  Volume {volume_num}: ✅ Loaded via Vertex AI (fallback)')
+                except Exception as e:
+                    print(f'  Volume {volume_num}: ❌ Vertex AI failed - {e}')
 
             if book_info:
                 # Cache the volume info
-                cache.cache_volume_info(book_info)
-                print(f'  Volume {volume_num}: ✅ Loaded successfully')
+                cache.cache_volume_info(series_name, volume_num, book_info)
                 loaded += 1
 
                 # Add small delay to avoid rate limiting
                 time.sleep(1)
 
             else:
-                print(f'  Volume {volume_num}: ❌ Failed to load')
+                print(f'  Volume {volume_num}: ❌ Failed to load (both APIs)')
                 errors += 1
 
         except Exception as e:

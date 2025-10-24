@@ -13,7 +13,12 @@ Redesigned workflow with step-by-step process:
 import re
 import sys
 import time
+import warnings
 from collections import defaultdict
+
+# Suppress warnings before importing other modules
+from warning_suppressor import configure_warnings
+configure_warnings()
 
 try:
     import streamlit as st
@@ -40,6 +45,103 @@ from mal_cover_fetcher import MALCoverFetcher
 from mangadex_cover_fetcher import MangaDexCoverFetcher
 
 
+def generate_marc_filename(books: list) -> str:
+    """
+    Generate a MARC export filename with date/time and sanitized series names.
+
+    Format: yyyy-mm-dd hhmm am/pm - series_names.mrc
+
+    Args:
+        books: List of BookInfo objects
+
+    Returns:
+        Sanitized filename string
+    """
+    from datetime import datetime
+    import re
+
+    # Get current date/time in Pacific Standard Time
+    current_time = datetime.now()
+
+    # Format date/time as "yyyy-mm-dd hhmm am/pm"
+    date_part = current_time.strftime("%Y-%m-%d")
+
+    # Format time as 12-hour with am/pm
+    hour_12 = current_time.strftime("%I").lstrip('0')  # Remove leading zero
+    minute_part = current_time.strftime("%M")
+    am_pm = current_time.strftime("%p").lower()
+    time_part = f"{hour_12}{minute_part} {am_pm}"
+
+    # Extract unique series names
+    series_names = []
+    for book in books:
+        if hasattr(book, 'series_name') and book.series_name:
+            series_names.append(book.series_name)
+
+    # Remove duplicates and sort
+    unique_series = sorted(list(set(series_names)))
+
+    # Create series name part - take first 3 series or use "multiple" if more
+    if len(unique_series) == 0:
+        series_part = "no_series"
+    elif len(unique_series) == 1:
+        series_part = sanitize_filename_part(unique_series[0])
+    elif len(unique_series) <= 3:
+        series_part = "_".join(sanitize_filename_part(name) for name in unique_series)
+    else:
+        series_part = f"{sanitize_filename_part(unique_series[0])}_and_{len(unique_series)-1}_more"
+
+    # Combine all parts
+    filename = f"{date_part} {time_part} - {series_part}.mrc"
+
+    # Ensure filename is not too long (Windows 7 limit is 260 chars total path)
+    if len(filename) > 100:
+        # Truncate series part if needed
+        max_series_length = 100 - len(f"{date_part} {time_part} - .mrc")
+        if len(series_part) > max_series_length:
+            series_part = series_part[:max_series_length-3] + "..."
+        filename = f"{date_part} {time_part} - {series_part}.mrc"
+
+    return filename
+
+
+def sanitize_filename_part(text: str) -> str:
+    """
+    Sanitize text for use in filename parts.
+    Removes characters not suitable for Windows 7 filenames.
+
+    Args:
+        text: Input text to sanitize
+
+    Returns:
+        Sanitized text suitable for filenames
+    """
+    if not text:
+        return ""
+
+    # Remove characters not allowed in Windows filenames
+    # Windows 7 disallowed: < > : " / \ | ? *
+    # Also remove other problematic characters
+    disallowed_chars = r'[<>:"/\\|?*\x00-\x1f\x7f-\x9f]'
+    sanitized = re.sub(disallowed_chars, '', text)
+
+    # Replace spaces with underscores
+    sanitized = sanitized.replace(' ', '_')
+
+    # Remove leading/trailing dots and spaces
+    sanitized = sanitized.strip('. ')
+
+    # Ensure not empty after sanitization
+    if not sanitized:
+        sanitized = "unnamed"
+
+    # Limit length
+    if len(sanitized) > 50:
+        sanitized = sanitized[:50]
+
+    return sanitized
+
+
 class SessionStateCache:
     """In-memory cache using Streamlit session state for persistence"""
 
@@ -52,8 +154,21 @@ class SessionStateCache:
 
     def get_cached_series_info(self, series_name: str):
         """Get cached series information"""
-        # Always return None to disable caching
-        return None
+        # Try BigQuery cache first
+        try:
+            from bigquery_cache import BigQueryCache
+            cache = BigQueryCache()
+            if cache.enabled:
+                cached_info = cache.get_series_info(series_name)
+                if cached_info:
+                    return cached_info
+        except Exception as e:
+            # Log cache failure but continue with fallback
+            if st.session_state.get('debug_mode', False):
+                st.warning(f"BigQuery cache lookup failed: {e}")
+
+        # Fallback to session state cache
+        return st.session_state.cache_series_info.get(series_name)
 
     def cache_series_info(self, series_name: str, series_info: dict):
         """Cache series information"""
@@ -61,8 +176,8 @@ class SessionStateCache:
 
     def get_cached_cover_image(self, key: str):
         """Get cached cover image URL"""
-        # Always return None to disable caching
-        return None
+        # Fallback to session state cache
+        return st.session_state.cache_cover_images.get(key)
 
     def cache_cover_image(self, key: str, url: str):
         """Cache cover image URL"""
@@ -223,9 +338,10 @@ def initialize_precached_data():
         # Cache the series info
         try:
             st.session_state.project_state.cache_series_info(series, cached_info)
-        except Exception:
-            # Silently fail if caching doesn't work
-            pass
+        except Exception as e:
+            # Log cache failure but continue
+            if st.session_state.get('debug_mode', False):
+                st.warning(f"Session state caching failed: {e}")
 
 
 def initialize_session_state():
@@ -351,6 +467,44 @@ def display_barcode_confirmation():
         st.rerun()
 
 
+def format_authors(authors):
+    """Format author names in 'Last, First' format"""
+    if not authors:
+        return []
+
+    formatted = []
+    for author in authors:
+        if isinstance(author, str):
+            # Simple heuristic: if there's a comma, assume it's already formatted
+            if "," in author:
+                formatted.append(author)
+            else:
+                # Try to split by spaces and reverse
+                parts = author.strip().split()
+                if len(parts) >= 2:
+                    # Assume "First Last" format, convert to "Last, First"
+                    formatted.append(f"{parts[-1]}, {' '.join(parts[:-1])}")
+                else:
+                    formatted.append(author)
+        else:
+            formatted.append(str(author))
+
+    return formatted
+
+
+def is_cover_url_accessible(url):
+    """Check if a cover image URL is accessible"""
+    if not url:
+        return False
+
+    try:
+        import requests
+        response = requests.head(url, timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
+
 def search_series_info(series_name: str):
     """Search for series information using APIs"""
     results = []
@@ -364,17 +518,17 @@ def search_series_info(series_name: str):
             results.append({
                 "name": cached_info.get("corrected_series_name", series_name),
                 "source": "Vertex AI (Cached)",
-                "authors": [cached_info.get("authors", "")] if cached_info.get("authors") else [],
+                "authors": cached_info.get("authors", []),
                 "volume_count": cached_info.get("extant_volumes", 0),
                 "summary": cached_info.get("summary", ""),
                 "cover_url": cached_info.get("cover_image_url", None),
                 "additional_info": {
-                    "genres": [],
-                    "publisher": "",
-                    "status": "",
+                    "genres": cached_info.get("genres", []),
+                    "publisher": cached_info.get("publisher", ""),
+                    "status": cached_info.get("status", ""),
                     "alternative_titles": cached_info.get("alternative_titles", []),
                     "spin_offs": cached_info.get("spinoff_series", []),
-                    "adaptations": []
+                    "adaptations": cached_info.get("adaptations", [])
                 }
             })
             return results
@@ -387,26 +541,26 @@ def search_series_info(series_name: str):
     vertex_api = None
     deepseek_api = None
 
-    # Try to initialize Vertex AI
-    try:
-        vertex_api = VertexAIAPI()
-        st.info(f"✅ Vertex AI API initialized successfully for: {series_name}")
-    except Exception as e:
-        st.error(f"❌ Vertex AI initialization failed: {e}")
-
-    # Try to initialize DeepSeek
+    # Try to initialize DeepSeek (priority)
     try:
         deepseek_api = DeepSeekAPI()
         st.info(f"✅ DeepSeek API initialized successfully for: {series_name}")
     except Exception as e:
         st.error(f"❌ DeepSeek API initialization failed: {e}")
 
+    # Try to initialize Vertex AI (fallback)
+    try:
+        vertex_api = VertexAIAPI()
+        st.info(f"✅ Vertex AI API initialized (fallback) for: {series_name}")
+    except Exception as e:
+        st.error(f"❌ Vertex AI initialization failed: {e}")
+
     # If no APIs are available, show warning and return
     if not vertex_api and not deepseek_api:
         st.error("❌ No APIs are available. Cannot search for series information.")
         return results
 
-    # Try DeepSeek API first if available
+    # Try DeepSeek first (priority)
     if deepseek_api:
         try:
             suggestions = deepseek_api.correct_series_name(series_name)
@@ -426,7 +580,7 @@ def search_series_info(series_name: str):
                         }
                     })
         except Exception as ds_e:
-            st.error(f"DeepSeek API search failed: {ds_e}")
+            st.warning(f"DeepSeek API search failed: {ds_e}")
 
     # Fallback to Vertex AI if available and no results yet
     if not results and vertex_api:
@@ -440,8 +594,8 @@ def search_series_info(series_name: str):
                 # Main series result
                 results.append({
                     "name": main_series_name,
-                    "source": "Vertex AI",
-                    "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
+                    "source": "Vertex AI (fallback)",
+                    "authors": series_info.get("authors", []),
                     "volume_count": series_info.get("extant_volumes", 0),
                     "summary": series_info.get("summary", ""),
                     "cover_url": series_info.get("cover_image_url", None),
@@ -454,8 +608,8 @@ def search_series_info(series_name: str):
                 for edition in series_info.get("alternate_editions", []):
                     results.append({
                         "name": f"{main_series_name} ({edition.get('edition_name', '')})",
-                        "source": "Vertex AI",
-                        "authors": [author.strip() for author in series_info.get("authors", "").split(",")] if series_info.get("authors") else [],
+                        "source": "Vertex AI (fallback)",
+                        "authors": series_info.get("authors", []),
                         "volume_count": series_info.get("extant_volumes", 0),
                         "summary": series_info.get("summary", ""),
                         "cover_url": series_info.get("cover_image_url", None),
@@ -518,25 +672,38 @@ def search_series_info(series_name: str):
 
 
 def fetch_cover_for_series(series_name: str):
-    """Fetch cover image URL for a series"""
-    # Try MAL first
+    """Fetch cover image URL for a series - prioritize Google Books for English covers"""
+    # Try Google Books first (best for English editions)
     try:
-        mal_fetcher = MALCoverFetcher()
-        cover_url = mal_fetcher.fetch_cover(series_name, 1)
+        google_api = GoogleBooksAPI()
+        cover_url = google_api.get_series_cover_url(series_name)
         if cover_url:
+            print(f"✅ Using Google Books cover for: {series_name}")
             return cover_url
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"❌ Google Books cover failed for {series_name}: {e}")
 
-    # Try MangaDex
+    # Try MangaDex (good for English editions)
     try:
         mangadex_fetcher = MangaDexCoverFetcher()
         cover_url = mangadex_fetcher.fetch_cover(series_name, 1)
         if cover_url:
+            print(f"✅ Using MangaDex cover for: {series_name}")
             return cover_url
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"❌ MangaDex cover failed for {series_name}: {e}")
 
+    # Try MAL as fallback (often Japanese editions)
+    try:
+        mal_fetcher = MALCoverFetcher()
+        cover_url = mal_fetcher.fetch_cover(series_name, 1)
+        if cover_url:
+            print(f"⚠️ Using MAL cover (may be Japanese) for: {series_name}")
+            return cover_url
+    except Exception as e:
+        print(f"❌ MAL cover failed for {series_name}: {e}")
+
+    print(f"❌ No cover found for: {series_name}")
     return None
 
 
@@ -600,19 +767,20 @@ def display_series_search():
                 col1, col2 = st.columns([1, 3])
 
                 with col1:
-                    if result["cover_url"]:
+                    if result["cover_url"] and is_cover_url_accessible(result["cover_url"]):
                         st.image(result["cover_url"], width=100)
                     else:
-                        st.write("No cover")
+                        st.write("No cover available")
 
                 with col2:
                     st.write(f"**{result['name']}**")
                     st.caption(f"Source: {result['source']}")
 
                     if result["authors"]:
-                        st.write(f"**Authors:** {', '.join(result['authors'])}")
+                        formatted_authors = format_authors(result['authors'])
+                        st.write(f"**Authors:** {', '.join(formatted_authors)}")
 
-                    if result["volume_count"] > 0:
+                    if int(result.get("volume_count", 0)) > 0:
                         st.write(f"**Number of Extant Volumes:** {result.get('volume_count', 'Unknown')}")
 
                     # Show additional info if available
@@ -840,8 +1008,42 @@ def display_processing():
                         mangadex_fetcher = MangaDexCoverFetcher()
 
                         cover_url = book_data.get("cover_image_url")
+
+                        # Try Google Books first for volume covers (best for English editions)
                         if not cover_url:
+                            # Try by ISBN first
                             cover_url = google_books_api.get_cover_image_url(book_data.get("isbn_13"), st.session_state.project_state)
+
+                        # If no ISBN or no cover from ISBN, try searching by title
+                        if not cover_url:
+                            # Search for specific volume using Google Books
+                            search_query = f'"{series_name}" "volume {volume_num}" manga'
+                            try:
+                                # Use Google Books API directly to search for this specific volume
+                                url = f"{google_books_api.base_url}?q={search_query}&maxResults=5"
+                                response = requests.get(url, timeout=10, verify=True)
+                                response.raise_for_status()
+                                data = response.json()
+
+                                if data.get("totalItems", 0) > 0:
+                                    for item in data["items"]:
+                                        volume_info = item["volumeInfo"]
+                                        title = volume_info.get("title", "").lower()
+
+                                        # Check if this looks like the right volume
+                                        if f"volume {volume_num}" in title or f"vol. {volume_num}" in title:
+                                            image_links = volume_info.get("imageLinks", {})
+                                            for size in ["smallThumbnail", "thumbnail", "small", "medium", "large", "extraLarge"]:
+                                                if size in image_links:
+                                                    cover_url = image_links[size]
+                                                    print(f"✅ Google Books found volume {volume_num} cover for: {series_name}")
+                                                    break
+                                            if cover_url:
+                                                break
+                            except Exception as e:
+                                print(f"❌ Google Books volume cover search failed: {e}")
+
+                        # Try MangaDex as fallback
                         if not cover_url:
                             cover_url = mangadex_fetcher.fetch_cover(series_name, volume_num)
 
@@ -969,17 +1171,115 @@ def display_results():
     st.divider()
     st.subheader("Export Options")
 
-    try:
-        marc_data = export_books_to_marc(st.session_state.all_books)
-        st.download_button(
-            "Download MARC File",
-            data=marc_data,
-            file_name="manga_export.mrc",
-            mime="application/marc",
-        )
-    except Exception as e:
-        st.error("Sorry! An error occurred while exporting the file.")
-        print(f"Error exporting MARC: {e!s}")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        try:
+            marc_data = export_books_to_marc(st.session_state.all_books)
+
+            # Generate filename with date/time and sanitized series names
+            filename = generate_marc_filename(st.session_state.all_books)
+
+            st.download_button(
+                "Download MARC File",
+                data=marc_data,
+                file_name=filename,
+                mime="application/marc",
+            )
+        except Exception as e:
+            st.error("Sorry! An error occurred while exporting the file.")
+            print(f"Error exporting MARC: {e!s}")
+
+    with col2:
+        try:
+            from label_generator import generate_pdf_labels
+            import pandas as pd
+
+            # Prepare data for label generation in the format expected by generate_pdf_labels
+            label_data = []
+            for book in st.session_state.all_books:
+                label_data.append({
+                    'Holdings Barcode': book.barcode,
+                    'Title': book.book_title or f"{book.series_name} Vol. {book.volume_number}",
+                    'Author': ', '.join(book.authors) if book.authors else "Unknown Author",
+                    'Copyright Year': str(book.copyright_year) if book.copyright_year else "",
+                    'Series Info': book.series_name,
+                    'Series Number': str(book.volume_number),
+                    'Call Number': "",  # Empty for manga
+                    'spine_label_id': "M"  # M for manga
+                })
+
+            if label_data:
+                # Convert to DataFrame as expected by generate_pdf_labels
+                df = pd.DataFrame(label_data)
+                pdf_data = generate_pdf_labels(df, library_name="Manga Collection")
+                st.download_button(
+                    "Print Labels",
+                    data=pdf_data,
+                    file_name="manga_labels.pdf",
+                    mime="application/pdf",
+                )
+            else:
+                st.button("Print Labels", disabled=True, help="No books to generate labels for")
+
+        except Exception as e:
+            st.error("Sorry! An error occurred while generating labels.")
+            print(f"Error generating labels: {e!s}")
+
+
+def display_queued_series_summary():
+    """Display a persistent top sticky bar showing queued series and volume counts"""
+    # Only show if we have confirmed series
+    confirmed_series = [s for s in st.session_state.series_entries if s.get("confirmed")]
+    if not confirmed_series:
+        return
+
+    # Calculate totals
+    total_series = len(confirmed_series)
+    total_volumes = sum(len(s["volumes"]) for s in confirmed_series)
+
+    # Create compact summary
+    with st.container():
+        st.markdown("""
+        <style>
+        .queued-series-summary {
+            background-color: #f0f2f6;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #e6e6e6;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .queued-series-summary h4 {
+            margin: 0 0 8px 0;
+            color: #1f2937;
+        }
+        .series-item {
+            display: inline-block;
+            background: white;
+            padding: 4px 8px;
+            margin: 2px 4px 2px 0;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            font-size: 12px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="queued-series-summary">
+            <h4>📚 Queued Series ({total_series} series, {total_volumes} volumes)</h4>
+        """, unsafe_allow_html=True)
+
+        # Display series in a compact format
+        for series in confirmed_series:
+            series_name = series.get("selected_series", series.get("name", "Unknown"))
+            volume_count = len(series.get("volumes", []))
+            st.markdown(f"""
+            <span class="series-item">{series_name} ({volume_count} vols)</span>
+            """, unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def main():
@@ -997,6 +1297,9 @@ def main():
     # Main title
     st.title("📚 Manga Lookup Tool")
     st.markdown("---")
+
+    # Display queued series summary (sticky top bar)
+    display_queued_series_summary()
 
     # Route to appropriate step
     if st.session_state.workflow_step == "barcode_input":
