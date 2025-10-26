@@ -943,6 +943,11 @@ class GoogleBooksAPI:
 
     def get_msrp_by_title_and_volume(self, series_name: str, volume_number: int) -> Union[float, None]:
         """Get MSRP for a manga volume by title and volume number"""
+        # First try manual lookup for common series
+        manual_msrp = self._get_manual_msrp(series_name, volume_number)
+        if manual_msrp:
+            return manual_msrp
+
         search_query = f'"{series_name}" "vol. {volume_number}" manga'
         url = f"{self.base_url}?q={search_query}&maxResults=1&key={self.api_key}"
 
@@ -960,6 +965,102 @@ class GoogleBooksAPI:
 
         except (requests.exceptions.RequestException, KeyError, ValueError):
             return None
+
+    def _get_manual_msrp(self, series_name: str, volume_number: int) -> Union[float, None]:
+        """Manual MSRP lookup for common manga series"""
+        manual_msrp_data = {
+            "Attack on Titan": {
+                "default": 10.99,
+                "volumes": {}
+            },
+            "Naruto": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "One Piece": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "My Hero Academia": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Demon Slayer": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Jujutsu Kaisen": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Chainsaw Man": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Spy x Family": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Tokyo Ghoul": {
+                "default": 10.99,
+                "volumes": {}
+            },
+            "Death Note": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Fullmetal Alchemist": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Bleach": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Dragon Ball": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Hunter x Hunter": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "One-Punch Man": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Haikyu!!": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Black Clover": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "The Promised Neverland": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Dr. Stone": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Fire Force": {
+                "default": 9.99,
+                "volumes": {}
+            }
+        }
+
+        # Check if series is in manual data
+        if series_name in manual_msrp_data:
+            series_data = manual_msrp_data[series_name]
+            # Check for specific volume price, otherwise use default
+            if volume_number in series_data["volumes"]:
+                return series_data["volumes"][volume_number]
+            else:
+                return series_data["default"]
+
+        return None
 
 
 class VertexAIAPI:
