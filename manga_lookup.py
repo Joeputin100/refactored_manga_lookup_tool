@@ -1229,7 +1229,9 @@ class VertexAIAPI:
             """
 
             # Use Google Search grounding
-            tool = Tool.from_google_search_retrieval()
+            from vertexai.generative_models import grounding
+            google_search_retrieval = grounding.GoogleSearchRetrieval()
+            tool = Tool.from_google_search_retrieval(google_search_retrieval=google_search_retrieval)
 
             # Generate response
             response = model.generate_content(
