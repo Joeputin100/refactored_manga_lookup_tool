@@ -89,13 +89,56 @@ class WikipediaComprehensiveImporter:
 
         return missing_series
 
+    def _clean_wikipedia_title(self, series_name: str) -> str:
+        """
+        Clean series name for Wikipedia URL with special case handling
+        """
+        # Special case mappings for known problematic series
+        special_cases = {
+            "Case Closed / Detective Conan": "Case_Closed",
+            "Gaki Deka": "Gaki_Deka",  # This series may not have a Wikipedia page
+            "Hunter × Hunter": "Hunter_x_Hunter",
+            "JoJo's Bizarre Adventure": "JoJo%27s_Bizarre_Adventure",
+            "Oishinbo": "Oishinbo",
+            "KochiKame: Tokyo Beat Cops": "Kochira_Katsushika-ku_Kameari_Kōen-mae_Hashutsujo",
+            "Crayon Shin-chan": "Crayon_Shin-chan",
+            "Fist of the North Star": "Fist_of_the_North_Star",
+            "The Kindaichi Case Files": "The_Kindaichi_Case_Files",
+            "Boys Over Flowers": "Boys_Over_Flowers",
+            "The Prince of Tennis": "The_Prince_of_Tennis",
+            "Nana": "Nana_(manga)",
+            "Paradise Kiss": "Paradise_Kiss",
+            "Nodame Cantabile": "Nodame_Cantabile",
+            "Glass Mask": "Glass_Mask",
+            "Basilisk: The Kouga Ninja Scrolls": "Basilisk:_The_Kouga_Ninja_Scrolls",
+            "Miyuki": "Miyuki_(manga)",
+            "Maison Ikkoku": "Maison_Ikkoku",
+            "Urusei Yatsura": "Urusei_Yatsura",
+            "Ranma ½": "Ranma_½",
+            "Inuyasha": "Inuyasha",
+            "Rumic World": "Rumic_World"
+        }
+
+        # Check if we have a special case mapping
+        if series_name in special_cases:
+            return special_cases[series_name]
+
+        # Default cleaning: replace spaces with underscores and handle special characters
+        clean_name = series_name.replace(' ', '_')
+
+        # Handle special characters that need URL encoding
+        import urllib.parse
+        clean_name = urllib.parse.quote(clean_name, safe='_')
+
+        return clean_name
+
     def get_wikipedia_page_info(self, series_name: str) -> Optional[Dict[str, Any]]:
         """
         Get detailed information from Wikipedia page for a manga series
         """
         try:
-            # Clean series name for URL
-            clean_name = series_name.replace(' ', '_').replace('/', '_')
+            # Clean series name for URL with better handling of special cases
+            clean_name = self._clean_wikipedia_title(series_name)
             url = f"{self.wikipedia_base_url}/wiki/{clean_name}"
 
             print(f"🔍 Fetching Wikipedia page: {series_name}")
