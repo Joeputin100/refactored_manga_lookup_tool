@@ -36,7 +36,30 @@ GRID_SPACING = 0.1 * inch
 
 
 def pad_inventory_number(inventory_num):
-    return str(inventory_num).zfill(6)
+    """Format inventory number without adding leading zeroes unless they exist in the original"""
+    return str(inventory_num)
+
+
+def process_volume_title(title, series_name, series_number):
+    """
+    Process volume title according to requirements:
+    - If volume title doesn't contain series title (case insensitive), prepend it
+    - If volume number is not in volume title, append it
+    """
+    if not title or not series_name:
+        return title
+
+    processed_title = title
+
+    # Check if series name is in title (case insensitive)
+    if series_name.lower() not in title.lower():
+        processed_title = f"{series_name} {title}"
+
+    # Check if volume number is in title
+    if series_number and str(series_number) not in processed_title:
+        processed_title = f"{processed_title} Volume {series_number}"
+
+    return processed_title
 
 
 def generate_barcode(inventory_num):
@@ -107,9 +130,31 @@ def _fit_text_to_box(
     return optimal_font_size, text_block_height
 
 
-def create_label(c, x, y, book_data, label_type, library_name):
+def format_authors(authors):
+    """Format author names in 'Last, First' format"""
+    if not authors:
+        return ""
+
+    # If authors is a string, split it into a list
+    if isinstance(authors, str):
+        authors = [a.strip() for a in authors.split(',')]
+
+    formatted_authors = []
+    for author in authors:
+        parts = author.split()
+        if len(parts) > 1:
+            last_name = parts[-1]
+            first_name = " ".join(parts[:-1])
+            formatted_authors.append(f"{last_name}, {first_name}")
+        else:
+            formatted_authors.append(author)
+    return ", ".join(formatted_authors)
+
+def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
     title = clean_text_for_pdf(book_data.get("Title", ""))
     authors = book_data.get("Author", "")
+    # Format authors to "Last, First"
+    formatted_authors = format_authors(authors)
     publication_year = book_data.get("Copyright Year", "")
     series_name = clean_text_for_pdf(book_data.get("Series Info", ""))
     series_number = book_data.get("Series Number", "")
@@ -117,16 +162,21 @@ def create_label(c, x, y, book_data, label_type, library_name):
     inventory_number = pad_inventory_number(
         book_data.get("Holdings Barcode", "")
     )
+    msrp = book_data.get("MSRP", "")
+
+
+    # Process volume title according to requirements
+    processed_title = process_volume_title(title, series_name, series_number)
 
     if label_type == 1 or label_type == 2:
-        if len(title) > 26:
-            title = title[:23] + "..."
+        if len(processed_title) > 26:
+            processed_title = processed_title[:23] + "..."
         if series_name and len(series_name) > 26:
             series_name = series_name[:23] + "..."
 
     if label_type == 1:
         text_lines = [
-            f"{title} - {authors} - {publication_year}",
+            f"{processed_title} - {formatted_authors} - {publication_year}",
         ]
         if series_name:
             text_lines.append(
@@ -134,7 +184,11 @@ def create_label(c, x, y, book_data, label_type, library_name):
                 if series_number
                 else series_name
             )
-        text_lines.append(f"<b>{inventory_number}</b> - <b>{dewey_number}</b>")
+        try:
+            msrp_text = f"<b>${float(msrp):.2f}</b>"
+        except (ValueError, TypeError):
+            msrp_text = ""  # Leave blank if no MSRP
+        text_lines.append(f"<b>{inventory_number}</b> - <b>{dewey_number}</b> - {msrp_text}")
 
         max_text_width = LABEL_WIDTH - 10
         max_text_height = LABEL_HEIGHT - 10
@@ -188,7 +242,7 @@ def create_label(c, x, y, book_data, label_type, library_name):
         )
 
         text_lines = [
-            title,
+            processed_title,
             authors.split(",")[0] if authors else "",
         ]
         if series_name:
@@ -226,7 +280,7 @@ def create_label(c, x, y, book_data, label_type, library_name):
             elif line_idx == 3:
                 line_offset_y = -1.25 * GRID_SPACING
 
-            optimal_font_size_line = 18
+            optimal_font_size_line = min(9.5, 18)
             while (
                 c.stringWidth(line_text, "Courier", optimal_font_size_line)
                 > max_text_width
@@ -259,7 +313,7 @@ def create_label(c, x, y, book_data, label_type, library_name):
             - (line_height * 0.8)
         )
 
-        b_text = book_data.get("spine_label_id", "B")
+        b_text = library_id
         b_font_size = 100
         while (
             c.stringWidth(b_text, "Helvetica-Bold", b_font_size) > LABEL_WIDTH
@@ -277,7 +331,7 @@ def create_label(c, x, y, book_data, label_type, library_name):
 
         c.setFont("Courier-Bold", 10)
         lines = [
-            library_name,
+            "Manga",
             dewey_number,
             authors[:3].upper() if authors else "",
             str(publication_year),
@@ -319,7 +373,7 @@ def create_label(c, x, y, book_data, label_type, library_name):
         )
 
         text_above_barcode_lines = [
-            f"{title} by {authors.split(',')[0] if authors else ''}",
+            f"{processed_title} by {authors.split(',')[0] if authors else ''}",
         ]
         max_text_above_width = LABEL_WIDTH - 10
         max_text_above_height = (
@@ -409,7 +463,7 @@ def create_label(c, x, y, book_data, label_type, library_name):
             c.restoreState()
 
 
-def generate_pdf_labels(df, library_name):
+def generate_pdf_labels(df, library_name, library_id="B"):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
 
@@ -454,7 +508,7 @@ def generate_pdf_labels(df, library_name):
                     y_pos - VERTICAL_SPACING / 2,
                 )
 
-            create_label(c, x_pos, y_pos, book_data, label_type, library_name)
+            create_label(c, x_pos, y_pos, book_data, label_type, library_name, library_id)
             label_count += 1
 
             if (

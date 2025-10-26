@@ -14,6 +14,7 @@ from pymarc import Field, Record, Subfield
 def export_books_to_marc(books: list) -> bytes:
     """
     Export a list of BookInfo objects to MARC21 format.
+    Creates both bibliographic and holding records for each book.
 
     Args:
         books: List of BookInfo objects
@@ -24,9 +25,15 @@ def export_books_to_marc(books: list) -> bytes:
     records = []
 
     for book in books:
-        record = create_marc_record(book)
-        if record:
-            records.append(record)
+        # Create bibliographic record
+        bib_record = create_bibliographic_record(book)
+        if bib_record:
+            records.append(bib_record)
+
+        # Create holding record
+        holding_record = create_holding_record(book)
+        if holding_record:
+            records.append(holding_record)
 
     # Combine all records into a single byte stream
     marc_data = b""
@@ -36,9 +43,9 @@ def export_books_to_marc(books: list) -> bytes:
     return marc_data
 
 
-def create_marc_record(book) -> Record:
+def create_bibliographic_record(book) -> Record:
     """
-    Create a MARC21 record from a BookInfo object.
+    Create a MARC21 bibliographic record from a BookInfo object.
 
     Args:
         book: BookInfo object
@@ -61,7 +68,36 @@ def create_marc_record(book) -> Record:
         return record
 
     except Exception as e:
-        print(f"Error creating MARC record for {book.series_name} vol {book.volume_number}: {e}")
+        print(f"Error creating bibliographic MARC record for {book.series_name} vol {book.volume_number}: {e}")
+        return None
+
+
+def create_holding_record(book) -> Record:
+    """
+    Create a MARC21 holding record from a BookInfo object.
+
+    Args:
+        book: BookInfo object
+
+    Returns:
+        pymarc.Record object or None if creation fails
+    """
+    try:
+        record = Record()
+
+        # Leader for holding record
+        record.leader = '00000n   a2200000Ia 4500'
+
+        # Control fields for holding record
+        add_holding_control_fields(record, book)
+
+        # Variable fields for holding record
+        add_holding_variable_fields(record, book)
+
+        return record
+
+    except Exception as e:
+        print(f"Error creating holding MARC record for {book.series_name} vol {book.volume_number}: {e}")
         return None
 
 
@@ -97,8 +133,9 @@ def create_fixed_field(book) -> str:
     # Character coding (blank = MARC-8)
     char_coding = ' '
 
-    # Date 1 (publication date)
-    date1 = str(book.copyright_year) if book.copyright_year else '    '
+    # Date 1 (publication date) - use cleaned copyright year
+    cleaned_year = clean_copyright_year(book.copyright_year)
+    date1 = str(cleaned_year) if cleaned_year else '    '
     date1 = date1.ljust(4)
 
     # Date 2 (blank for single date)
@@ -172,6 +209,100 @@ def create_fixed_field(book) -> str:
     )
 
     return fixed_field.ljust(40)
+
+
+def add_holding_control_fields(record: Record, book) -> None:
+    """Add control fields to holding record"""
+    # 001 - Control Number (use barcode with H prefix)
+    if book.barcode:
+        record.add_field(Field(tag='001', data=f'H{book.barcode}'))
+
+    # 005 - Date and Time of Latest Transaction
+    current_time = datetime.now().strftime('%Y%m%d%H%M%S.0')
+    record.add_field(Field(tag='005', data=current_time))
+
+    # 008 - Fixed-Length Data Elements for holdings
+    fixed_field = create_holding_fixed_field(book)
+    record.add_field(Field(tag='008', data=fixed_field))
+
+
+def create_holding_fixed_field(book) -> str:
+    """Create 008 fixed field data for holding record"""
+    entry_date = datetime.now().strftime('%y%m%d')
+
+    # Type of record (v = Multipart item holdings)
+    record_type = 'v'
+
+    # Receipt/acquisition status (1 = Other)
+    receipt_status = '1'
+
+    # General retention policy (blank = Not specified)
+    retention = ' '
+
+    # Completeness (blank = Not specified)
+    completeness = ' '
+
+    # Date of report (blank = Not specified)
+    report_date = '    '
+
+    # Fixed field for holdings
+    fixed_field = (
+        f'{entry_date}'  # 00-05
+        f'{record_type}'  # 06
+        f'{receipt_status}'  # 07
+        f'{retention}'  # 08
+        f'{completeness}'  # 09
+        f'{report_date}'  # 10-13
+    )
+
+    return fixed_field.ljust(40)
+
+
+def add_holding_variable_fields(record: Record, book) -> None:
+    """Add variable fields to holding record"""
+
+    # 852 - Location
+    record.add_field(Field(
+        tag='852',
+        indicators=[' ', ' '],
+        subfields=[
+            Subfield('a', 'MANG'),  # Location code
+            Subfield('b', 'Manga Collection'),  # Sublocation
+            Subfield('h', book.barcode if book.barcode else 'UNKNOWN')
+        ]
+    ))
+
+    # 856 - Electronic Location and Access
+    if book.cover_image_url:
+        record.add_field(Field(
+            tag='856',
+            indicators=['4', '1'],
+            subfields=[
+                Subfield('u', book.cover_image_url),
+                Subfield('z', 'Cover image')
+            ]
+        ))
+
+    # 020 - Price (MSRP) in holding record
+    if hasattr(book, 'msrp') and book.msrp:
+        record.add_field(Field(
+            tag='020',
+            indicators=[' ', ' '],
+            subfields=[
+                Subfield('c', f'${book.msrp:.2f}')  # Price field
+            ]
+        ))
+
+    # 037 - Source of Acquisition (Cost) in holding record
+    if hasattr(book, 'msrp') and book.msrp:
+        record.add_field(Field(
+            tag='037',
+            indicators=[' ', ' '],
+            subfields=[
+                Subfield('a', f'${book.msrp:.2f}'),  # Cost field
+                Subfield('b', 'MSRP')
+            ]
+        ))
 
 
 def add_variable_fields(record: Record, book) -> None:
@@ -277,6 +408,27 @@ def add_variable_fields(record: Record, book) -> None:
             ]
         ))
 
+    # 020 - Price (MSRP)
+    if hasattr(book, 'msrp') and book.msrp:
+        record.add_field(Field(
+            tag='020',
+            indicators=[' ', ' '],
+            subfields=[
+                Subfield('c', f'${book.msrp:.2f}')  # Price field
+            ]
+        ))
+
+    # 037 - Source of Acquisition (Cost)
+    if hasattr(book, 'msrp') and book.msrp:
+        record.add_field(Field(
+            tag='037',
+            indicators=[' ', ' '],
+            subfields=[
+                Subfield('a', f'${book.msrp:.2f}'),  # Cost field
+                Subfield('b', 'MSRP')
+            ]
+        ))
+
 
 def create_title_field(book) -> Field:
     """Create 245 title field"""
@@ -313,9 +465,10 @@ def create_publication_field(book) -> Field:
     else:
         subfields.append(Subfield('b', 'Unknown'))
 
-    # Date of publication
-    if book.copyright_year:
-        subfields.append(Subfield('c', str(book.copyright_year)))
+    # Date of publication - use cleaned copyright year
+    cleaned_year = clean_copyright_year(book.copyright_year)
+    if cleaned_year:
+        subfields.append(Subfield('c', str(cleaned_year)))
     else:
         subfields.append(Subfield('c', '[n.d.]'))
 
@@ -352,6 +505,30 @@ def create_physical_description_field(book) -> Field:
         indicators=[' ', ' '],
         subfields=subfields
     )
+
+
+def clean_copyright_year(year):
+    """Clean copyright year to ensure 4-digit year only"""
+    if not year:
+        return None
+
+    # Convert to string and extract only digits
+    year_str = str(year)
+    digits_only = re.sub(r'\D', '', year_str)
+
+    # Ensure we have a 4-digit year
+    if len(digits_only) == 4:
+        return digits_only
+    elif len(digits_only) == 2:
+        # Assume 20th/21st century
+        year_num = int(digits_only)
+        if year_num <= 50:  # If year <= 50, assume 2000s
+            return f"20{digits_only}"
+        else:  # If year > 50, assume 1900s
+            return f"19{digits_only}"
+    else:
+        # If we can't determine, return None
+        return None
 
 
 def clean_text(text: str) -> str:

@@ -1,0 +1,75 @@
+{
+  "timestamp": "2025-10-24T23:12:00Z",
+  "summary": "Investigating Tegami Bachi metadata issues and volume loading background task",
+  "project_files": {
+    "main_application": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/manga_lookup.py",
+    "bigquery_cache": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/bigquery_cache.py",
+    "volume_loading": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/load_missing_volumes_batch.py",
+    "pre_seeding": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/pre_seed_cache_working.py",
+    "background_runner": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/run_pre_seed_background.sh"
+  },
+  "credentials_configuration": {
+    "aws_connection": {
+      "ssh_script": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/ssh-aws.sh",
+      "host": "ec2-52-15-93-20.us-east-2.compute.amazonaws.com",
+      "user": "ec2-user",
+      "key_file": "~/projects/Rosie/my-new-key.pem"
+    },
+    "oracle_cloud_connection": {
+      "ssh_script": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/connect_oraclecloud_tmux.sh",
+      "host": "159.54.179.141",
+      "user": "ubuntu",
+      "key_file": "~/projects/Rosie/ssh-key-2025-10-22.key"
+    },
+    "bigquery_config": {
+      "project_id": "static-webbing-461904-c4",
+      "dataset": "manga_lookup_cache",
+      "tables": ["series_info", "volume_info"]
+    }
+  },
+  "cloud_resources_status": {
+    "aws_instance": {
+      "status": "running",
+      "streamlit_app": "running on port 8501",
+      "bigquery_cache": "enabled and accessible"
+    },
+    "oracle_cloud_instance": {
+      "status": "running",
+      "streamlit_app": "running on port 8501",
+      "volume_loading": "not currently running",
+      "tmux_session": "available (session 0)"
+    }
+  },
+  "tegami_bachi_issue_analysis": {
+    "problem_description": "Tegami Bachi series shows incorrect volume count (1 instead of 20) and missing cover images",
+    "current_cached_data": {
+      "corrected_series_name": "Tegami Bachi",
+      "authors": ["Hiroyuki Asada"],
+      "extant_volumes": 20,
+      "summary": "The story is set in AmberGround, a land of perpetual twilight where an artificial sun only dimly illuminates the capital. In the dark, untamed wilderness between towns, giant armored insects known as Gaichuu roam. To connect the hearts of the people, a brave corps of couriers called 'Letter Bees' (Tegami Bachi) risk their lives to deliver letters. The series follows Lag Seeing, a young boy who was once delivered as a 'letter' himself by the Letter Bee Gauche Suede. Inspired by Gauche, Lag becomes a Letter Bee, accompanied by his dingo (bodyguard) Niche and her 'pet' Steak, to deliver people's 'hearts' and search for the man who set him on this path.",
+      "spinoff_series": ["Tegami Bachi: A Letter to the Glimmering Blue (Light Novel)"],
+      "alternate_editions": [],
+      "cover_image_url": null,
+      "cached": true,
+      "cache_source": "bigquery"
+    },
+    "identified_issues": [
+      "Series info correctly shows 20 volumes in BigQuery cache",
+      "Cover image URL is null in series cache",
+      "Individual volume data may be missing or incomplete",
+      "Volume count discrepancy between cache and display"
+    ]
+  },
+  "volume_loading_background_task": {
+    "status": "not currently running on either cloud instance",
+    "script_location": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/load_missing_volumes_batch.py",
+    "oracle_startup_script": "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/start_volume_loading_oracle.sh",
+    "last_attempt": "pre_seed_cache.py failed due to import error (MangaLookup class not found)"
+  },
+  "recommended_actions": [
+    "Fix pre_seed_cache.py import issue",
+    "Start volume loading background task on Oracle Cloud",
+    "Investigate cover image fetching for Tegami Bachi",
+    "Verify volume count display logic in application"
+  ]
+}

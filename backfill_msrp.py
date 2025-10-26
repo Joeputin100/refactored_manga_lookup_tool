@@ -1,15 +1,16 @@
 import sys
-from manga_lookup import GoogleBooksAPI
+from manga_lookup import GoogleBooksAPI, VertexAIAPI
 from bigquery_cache import BigQueryCache
 
 def backfill_msrp():
     """
     Finds volumes with missing MSRP in BigQuery and updates them
-    with data from Google Books.
+    with data from Google Books and Vertex AI.
     """
     print("Starting MSRP backfill process...")
     cache = BigQueryCache()
     google_books_api = GoogleBooksAPI()
+    vertex_api = VertexAIAPI()
 
     # Query for volumes with missing MSRP
     query = """
@@ -28,6 +29,9 @@ def backfill_msrp():
 
         if not msrp:
             msrp = google_books_api.get_msrp_by_title_and_volume(row.series_name, row.volume_number)
+
+        if not msrp:
+            msrp = vertex_api.get_msrp_with_grounding(row.series_name, row.volume_number)
 
         if msrp:
             print(f"Found MSRP: ${msrp}. Updating BigQuery...")

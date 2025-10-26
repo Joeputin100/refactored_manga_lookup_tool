@@ -1,0 +1,824 @@
+[0;34m[07:26:09][0m 🚀 Starting Background Mirror Monitor
+[0;34m[07:26:09][0m 📁 Script: /data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/automated_mirroring.sh
+[0;34m[07:26:09][0m 📄 Log: /data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/mirror_monitor.log
+[0;34m[07:26:09][0m ⏰ Interval: Every hour
+[0;34m[07:26:09][0m 
+[0;34m[07:26:09][0m 🔄 Running automated mirroring at 07:26:09...
+[0;34m[07:26:09][0m Starting automated mirroring...
+[0;34m[07:26:09][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[07:26:12][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[07:26:34][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[07:26:36][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[07:26:38][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[07:26:52][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[07:26:55][0m 💤 Sleeping for 1 hour...
+[0;34m[07:26:55][0m 
+[0;34m[08:26:55][0m 🔄 Running automated mirroring at 08:26:55...
+[0;34m[08:26:55][0m Starting automated mirroring...
+[0;34m[08:26:55][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[08:26:58][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[08:27:21][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[08:27:23][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[08:27:25][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[08:27:40][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[08:27:44][0m 💤 Sleeping for 1 hour...
+[0;34m[08:27:44][0m 
+[0;34m[09:27:44][0m 🔄 Running automated mirroring at 09:27:44...
+[0;34m[09:27:44][0m Starting automated mirroring...
+[0;34m[09:27:44][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[09:27:47][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[09:28:11][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[09:28:13][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[09:28:14][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[09:28:29][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[09:28:32][0m 💤 Sleeping for 1 hour...
+[0;34m[09:28:32][0m 
+[0;34m[10:28:33][0m 🔄 Running automated mirroring at 10:28:33...
+[0;34m[10:28:33][0m Starting automated mirroring...
+[0;34m[10:28:33][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[10:28:35][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[10:28:59][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[10:29:01][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[10:29:02][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[10:29:18][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[10:29:21][0m 💤 Sleeping for 1 hour...
+[0;34m[10:29:21][0m 
+[0;34m[11:29:21][0m 🔄 Running automated mirroring at 11:29:21...
+[0;34m[11:29:21][0m Starting automated mirroring...
+[0;34m[11:29:21][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[11:29:24][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[11:29:48][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[11:29:50][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[11:29:52][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[11:30:07][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[11:30:11][0m 💤 Sleeping for 1 hour...
+[0;34m[11:30:11][0m 
+[0;34m[12:30:11][0m 🔄 Running automated mirroring at 12:30:11...
+[0;34m[12:30:11][0m Starting automated mirroring...
+[0;34m[12:30:11][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[12:30:13][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[12:30:37][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[12:30:39][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[12:30:41][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[12:30:56][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[12:30:59][0m 💤 Sleeping for 1 hour...
+[0;34m[12:30:59][0m 
+[0;34m[13:30:59][0m 🔄 Running automated mirroring at 13:30:59...
+[0;34m[13:30:59][0m Starting automated mirroring...
+[0;34m[13:30:59][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[13:31:02][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[13:31:26][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[13:31:28][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[13:31:30][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[13:31:45][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[13:31:48][0m 💤 Sleeping for 1 hour...
+[0;34m[13:31:48][0m 
+[0;34m[14:31:49][0m 🔄 Running automated mirroring at 14:31:49...
+[0;34m[14:31:49][0m Starting automated mirroring...
+[0;34m[14:31:49][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[14:31:52][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[14:32:15][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[14:32:17][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[14:32:19][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[14:32:34][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[14:32:37][0m 💤 Sleeping for 1 hour...
+[0;34m[14:32:37][0m 
+[0;34m[15:32:38][0m 🔄 Running automated mirroring at 15:32:38...
+[0;34m[15:32:38][0m Starting automated mirroring...
+[0;34m[15:32:38][0m Testing connection to AWS...
+Connection successful
+[0;32m✅ AWS connection verified[0m
+[0;34m[15:32:40][0m Syncing to AWS EC2...
+[0;32m✅ Synced to AWS: app_new_workflow.py[0m
+[0;32m✅ Synced to AWS: manga_lookup.py[0m
+[0;32m✅ Synced to AWS: bigquery_cache.py[0m
+[0;32m✅ Synced to AWS: label_generator.py[0m
+[0;32m✅ Synced to AWS: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to AWS: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to AWS: requirements.txt[0m
+[0;32m✅ Synced to AWS: secrets.toml[0m
+[0;32m✅ Synced to AWS: .streamlit/config.toml[0m
+[0;34m[15:33:01][0m Restarting Streamlit on AWS...
+[0;32m✅ AWS sync completed[0m
+[0;34m[15:33:03][0m Testing connection to Oracle Cloud...
+Connection successful
+[0;32m✅ Oracle Cloud connection verified[0m
+[0;34m[15:33:05][0m Syncing to Oracle Cloud...
+[0;32m✅ Synced to Oracle: app_new_workflow.py[0m
+[0;32m✅ Synced to Oracle: manga_lookup.py[0m
+[0;32m✅ Synced to Oracle: bigquery_cache.py[0m
+[0;32m✅ Synced to Oracle: label_generator.py[0m
+[0;32m✅ Synced to Oracle: mle_star_cache_optimizer.py[0m
+[0;32m✅ Synced to Oracle: load_missing_volumes_batch.py[0m
+[0;32m✅ Synced to Oracle: requirements.txt[0m
+[0;32m✅ Synced to Oracle: secrets.toml[0m
+[0;32m✅ Synced to Oracle: .streamlit/config.toml[0m
+[0;34m[15:33:18][0m Updating Python environment on Oracle Cloud...
+Requirement already satisfied: streamlit>=1.28.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (1.50.0)
+Requirement already satisfied: rich>=13.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (14.2.0)
+Requirement already satisfied: requests>=2.31.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (2.32.5)
+Requirement already satisfied: python-dotenv>=1.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.1.1)
+Requirement already satisfied: click>=8.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (8.3.0)
+Requirement already satisfied: pymarc>=5.1.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (5.3.1)
+Requirement already satisfied: pandas>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (2.3.3)
+Requirement already satisfied: protobuf>=3.20.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (6.33.0)
+Requirement already satisfied: reportlab>=4.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (4.4.4)
+Requirement already satisfied: pydantic>=2.0.0 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (2.12.3)
+Requirement already satisfied: python-barcode>=0.15.1 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (0.16.1)
+Requirement already satisfied: qrcode>=7.4.2 in ./venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (8.2)
+Requirement already satisfied: altair!=5.4.0,!=5.4.1,<6,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (5.5.0)
+Requirement already satisfied: blinker<2,>=1.5.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (1.9.0)
+Requirement already satisfied: cachetools<7,>=4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.2.1)
+Requirement already satisfied: numpy<3,>=1.23 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (2.3.4)
+Requirement already satisfied: packaging<26,>=20 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (25.0)
+Requirement already satisfied: pillow<12,>=7.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (11.3.0)
+Requirement already satisfied: pyarrow>=7.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (21.0.0)
+Requirement already satisfied: tenacity<10,>=8.1.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (9.1.2)
+Requirement already satisfied: toml<2,>=0.10.1 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.10.2)
+Requirement already satisfied: typing-extensions<5,>=4.4.0 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: watchdog<7,>=2.1.5 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.0.0)
+Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.45)
+Requirement already satisfied: pydeck<1,>=0.8.0b4 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (0.9.1)
+Requirement already satisfied: tornado!=6.5.0,<7,>=6.0.3 in ./venv/lib/python3.12/site-packages (from streamlit>=1.28.0->-r requirements.txt (line 1)) (6.5.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./venv/lib/python3.12/site-packages (from rich>=13.0.0->-r requirements.txt (line 2)) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.12/site-packages (from requests>=2.31.0->-r requirements.txt (line 3)) (2025.10.5)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv/lib/python3.12/site-packages (from pandas>=2.0.0->-r requirements.txt (line 7)) (2025.2)
+Requirement already satisfied: annotated-types>=0.6.0 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.4 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (2.41.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./venv/lib/python3.12/site-packages (from pydantic>=2.0.0->-r requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: jinja2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.1.6)
+Requirement already satisfied: jsonschema>=3.0 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.25.1)
+Requirement already satisfied: narwhals>=1.14.2 in ./venv/lib/python3.12/site-packages (from altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2.9.0)
+Requirement already satisfied: gitdb<5,>=4.0.1 in ./venv/lib/python3.12/site-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (4.0.12)
+Requirement already satisfied: mdurl~=0.1 in ./venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.0.0->-r requirements.txt (line 2)) (0.1.2)
+Requirement already satisfied: six>=1.5 in ./venv/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas>=2.0.0->-r requirements.txt (line 7)) (1.17.0)
+Requirement already satisfied: smmap<6,>=3.0.1 in ./venv/lib/python3.12/site-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit>=1.28.0->-r requirements.txt (line 1)) (5.0.2)
+Requirement already satisfied: MarkupSafe>=2.0 in ./venv/lib/python3.12/site-packages (from jinja2->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (3.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.7.1 in ./venv/lib/python3.12/site-packages (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<6,>=4.0->streamlit>=1.28.0->-r requirements.txt (line 1)) (0.28.0)
+[0;32m✅ Oracle Cloud sync completed[0m
+[0;32m✅ Automated mirroring completed![0m
+
+📍 AWS Instance: http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501
+📍 Oracle Cloud Instance: http://159.54.179.141:8501
+
+📊 Next sync scheduled in 1 hour
+[0;32m✅ Mirroring completed successfully[0m
+[0;34m[15:33:21][0m 💤 Sleeping for 1 hour...
+[0;34m[15:33:21][0m 

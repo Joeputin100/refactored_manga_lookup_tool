@@ -1,0 +1,53 @@
+{
+  "test_summary": {
+    "first_test": {
+      "timestamp": "20251024_044253",
+      "duration_seconds": 1198.14,
+      "performance_books_per_second": 0.08,
+      "marc_file_size_bytes": 102813
+    },
+    "second_test": {
+      "timestamp": "20251024_052008",
+      "duration_seconds": 1171.54,
+      "performance_books_per_second": 0.09,
+      "marc_file_size_bytes": 102275
+    },
+    "volume_background_job": {
+      "volumes_loaded": 300,
+      "progress_rate_volumes_per_hour": 42,
+      "status": "running"
+    }
+  },
+  "data_quality": {
+    "field_completion_rate": 100.0,
+    "api_success_rate": 100.0,
+    "cover_image_issues": "100% broken links (HTTP 301/404)"
+  },
+  "identified_issues": [
+    {
+      "issue": "cover_image_urls",
+      "description": "All cover URLs returning HTTP 301/404 errors",
+      "priority": "high"
+    },
+    {
+      "issue": "label_generator",
+      "description": "Missing 'barcode' module preventing PDF generation",
+      "priority": "medium"
+    },
+    {
+      "issue": "cache_performance",
+      "description": "Bulk test not utilizing cache - makes fresh API calls",
+      "priority": "medium"
+    },
+    {
+      "issue": "cache_completeness",
+      "description": "Need to verify cached data includes all metadata fields",
+      "priority": "medium"
+    }
+  ],
+  "system_performance": {
+    "api_priority_system": "working_perfectly",
+    "deepseek_success_rate": 100.0,
+    "vertex_ai_fallbacks": 0
+  }
+}

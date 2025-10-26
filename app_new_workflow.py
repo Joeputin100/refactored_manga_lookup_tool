@@ -505,15 +505,122 @@ def is_cover_url_accessible(url):
         return False
 
 
+def get_series_info_from_bigquery(series_name: str):
+    """Get series information from BigQuery cache"""
+    try:
+        from bigquery_cache import BigQueryCache
+        cache = BigQueryCache()
+
+        # Use case-insensitive query with LOWER() function
+        query = f"""SELECT * FROM `static-webbing-461904-c4.manga_lookup_cache.series_info` WHERE LOWER(series_name) = LOWER(\"{series_name}\")"""
+
+        print(f"🔍 BigQuery query: {query}")
+        result = cache.client.query(query).result()
+
+        row_count = 0
+        for row in result:
+            row_count += 1
+            print(f"✅ Found series in BigQuery: {row.series_name}")
+            return {
+                "corrected_series_name": row.series_name,
+                "authors": row.authors if hasattr(row, 'authors') else [],
+                "extant_volumes": row.total_volumes if hasattr(row, 'total_volumes') else 0,
+                "summary": row.summary if hasattr(row, 'summary') else "",
+                "cover_image_url": row.cover_image_url if hasattr(row, 'cover_image_url') else None,
+                "genres": row.genres if hasattr(row, 'genres') else [],
+                "publisher": row.publisher if hasattr(row, 'publisher') else "",
+                "status": row.status if hasattr(row, 'status') else "",
+                "alternative_titles": row.alternative_titles if hasattr(row, 'alternative_titles') else [],
+                "spinoff_series": row.spinoff_series if hasattr(row, 'spinoff_series') else [],
+                "adaptations": row.adaptations if hasattr(row, 'adaptations') else []
+            }
+
+        if row_count == 0:
+            print(f"❌ No series found in BigQuery for: {series_name}")
+
+    except Exception as e:
+        print(f"❌ BigQuery cache query failed: {e}")
+    return None
+
+
+def get_volume_info_from_bigquery(series_name: str, volume_number: int):
+    """Get volume information from BigQuery cache"""
+    try:
+        from bigquery_cache import BigQueryCache
+        cache = BigQueryCache()
+
+        # Query for volume info
+        query = f'''SELECT * FROM `static-webbing-461904-c4.manga_lookup_cache.volume_info` WHERE LOWER(series_name) = LOWER("{series_name}") AND volume_number = {volume_number}'''
+
+        print(f"🔍 BigQuery volume query: {query}")
+        result = cache.client.query(query).result()
+
+        row_count = 0
+        for row in result:
+            row_count += 1
+            print(f"✅ Found volume in BigQuery: {series_name} Vol {volume_number}")
+            return {
+                "series_name": row.series_name,
+                "volume_number": row.volume_number,
+                "book_title": row.book_title if hasattr(row, 'book_title') else f"{series_name} Vol. {volume_number}",
+                "authors": row.authors if hasattr(row, 'authors') else [],
+                "isbn_13": row.isbn_13 if hasattr(row, 'isbn_13') else None,
+                "publisher_name": row.publisher_name if hasattr(row, 'publisher_name') else "",
+                "copyright_year": row.copyright_year if hasattr(row, 'copyright_year') else None,
+                "description": row.description if hasattr(row, 'description') else "",
+                "physical_description": row.physical_description if hasattr(row, 'physical_description') else "",
+                "genres": row.genres if hasattr(row, 'genres') else [],
+                "msrp_cost": row.msrp_cost if hasattr(row, 'msrp_cost') else None,
+                "cover_image_url": row.cover_image_url if hasattr(row, 'cover_image_url') else None,
+                "cached": True,
+                "cache_source": "bigquery"
+            }
+
+        if row_count == 0:
+            print(f"❌ No volume found in BigQuery for: {series_name} Vol {volume_number}")
+
+    except Exception as e:
+        print(f"❌ BigQuery volume cache query failed: {e}")
+    return None
+
+
 def search_series_info(series_name: str):
     """Search for series information using APIs"""
     results = []
 
-    # Check cache first for the original series name
+    # Check BigQuery cache first
+    try:
+        cached_info = get_series_info_from_bigquery(series_name)
+        if cached_info:
+            st.success(f"🎯 Using BigQuery cached data for: {series_name}")
+            # Convert cached data to the expected format
+            results.append({
+                "name": cached_info.get("corrected_series_name", series_name),
+                "source": "BigQuery Cache",
+                "authors": cached_info.get("authors", []),
+                "volume_count": cached_info.get("extant_volumes", 0),
+                "summary": cached_info.get("summary", ""),
+                "cover_url": cached_info.get("cover_image_url", None),
+                "additional_info": {
+                    "genres": cached_info.get("genres", []),
+                    "publisher": cached_info.get("publisher", ""),
+                    "status": cached_info.get("status", ""),
+                    "alternative_titles": cached_info.get("alternative_titles", []),
+                    "spin_offs": cached_info.get("spinoff_series", []),
+                    "adaptations": cached_info.get("adaptations", [])
+                }
+            })
+            return results
+        else:
+            st.info(f"🔍 No BigQuery cached data found for: {series_name}")
+    except Exception as e:
+        st.warning(f"BigQuery cache check failed: {e}")
+
+    # Fall back to local SQLite cache
     try:
         cached_info = st.session_state.project_state.get_cached_series_info(series_name)
         if cached_info:
-            st.success(f"🎯 Using cached data for: {series_name}")
+            st.success(f"🎯 Using local cached data for: {series_name}")
             # Convert cached data to the expected format
             results.append({
                 "name": cached_info.get("corrected_series_name", series_name),
@@ -535,7 +642,7 @@ def search_series_info(series_name: str):
         else:
             st.info(f"🔍 No cached data found for: {series_name}, making API call...")
     except Exception as e:
-        st.warning(f"Cache check failed: {e}")
+        st.warning(f"Local cache check failed: {e}")
 
     # Initialize APIs with proper error handling
     vertex_api = None
@@ -987,19 +1094,31 @@ def display_processing():
 
             for i, volume_num in enumerate(volumes):
                 if processed_count >= progress:
-                    # Get book info
+                    # Get book info - check BigQuery cache first
                     book_data = None
-                    if deepseek_api:
-                        try:
-                            book_data = deepseek_api.get_book_info(series_name, volume_num, st.session_state.project_state)
-                        except Exception as e:
-                            st.warning(f"DeepSeek API failed for {series_name} Vol {volume_num}: {e}")
-                    
-                    if not book_data and vertex_api:
-                        try:
-                            book_data = vertex_api.get_book_info(series_name, volume_num, st.session_state.project_state)
-                        except Exception as e:
-                            st.error(f"Vertex AI failed for {series_name} Vol {volume_num}: {e}")
+
+                    # Try BigQuery cache first
+                    try:
+                        cached_volume = get_volume_info_from_bigquery(series_name, volume_num)
+                        if cached_volume:
+                            st.success(f"🎯 Using BigQuery cached data for: {series_name} Vol {volume_num}")
+                            book_data = cached_volume
+                    except Exception as e:
+                        st.warning(f"BigQuery cache check failed for {series_name} Vol {volume_num}: {e}")
+
+                    # If no cached data, try APIs
+                    if not book_data:
+                        if deepseek_api:
+                            try:
+                                book_data = deepseek_api.get_book_info(series_name, volume_num, st.session_state.project_state)
+                            except Exception as e:
+                                st.warning(f"DeepSeek API failed for {series_name} Vol {volume_num}: {e}")
+
+                        if not book_data and vertex_api:
+                            try:
+                                book_data = vertex_api.get_book_info(series_name, volume_num, st.session_state.project_state)
+                            except Exception as e:
+                                st.error(f"Vertex AI failed for {series_name} Vol {volume_num}: {e}")
 
                     if book_data:
                         # Create BookInfo object and add barcode
@@ -1150,7 +1269,7 @@ def display_results():
 
             # MSRP
             with col5:
-                st.write(f"${book.msrp_cost:.2f}" if book.msrp_cost else "N/A")
+                st.write(f"${float(book.msrp_cost):.2f}" if book.msrp_cost else "N/A")
 
             # Physical description
             with col6:

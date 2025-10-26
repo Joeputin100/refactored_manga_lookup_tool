@@ -1,0 +1,52 @@
+--- a/app_new_workflow.py
++++ b/app_new_workflow.py
+@@ -47,6 +47,7 @@
+ from marc_exporter import export_books_to_marc
+ from mal_cover_fetcher import MALCoverFetcher
+ from mangadex_cover_fetcher import MangaDexCoverFetcher
++from enhanced_volume_display import format_volume_range, display_enhanced_volume_info, create_volume_range_summary
+
+
+ def generate_marc_filename(books: list) -> str:
+@@ -1214,6 +1215,15 @@ def display_results():
+     # Group books by series
+     series_groups = defaultdict(list)
+     for book in st.session_state.all_books:
+         series_groups[book.series_name].append(book)
+
++    # Enhanced: Display volume range summary
++    st.subheader("📊 Processing Summary")
++    summary = create_volume_range_summary(st.session_state.series_entries)
++    col1, col2, col3 = st.columns(3)
++    with col1:
++        st.metric("Total Series", summary['total_series'])
++    with col2:
++        st.metric("Total Volumes", summary['total_volumes'])
++    with col3:
++        st.metric("Barcode Range", f"{st.session_state.series_entries[0]['barcodes'][0]} - {st.session_state.series_entries[-1]['barcodes'][-1]}")
++
+     # Display each series with header and volume details
+     for series_name in sorted(series_groups.keys()):
+         books = sorted(series_groups[series_name], key=lambda x: x.volume_number)
+@@ -1221,18 +1231,12 @@ def display_results():
+         # Series header
+         st.markdown(f"### 📚 {series_name}")
+
+-        # Series metadata
+-        if books:
+-            first_book = books[0]
+-            col1, col2, col3, col4 = st.columns(4)
+-            with col1:
+-                st.write(f"**Author:** {', '.join(first_book.authors) if first_book.authors else 'Unknown'}")
+-            with col2:
+-                st.write(f"**Barcode Range:** {books[0].barcode} - {books[-1].barcode}")
+-            with col3:
+-                st.write(f"**Volume Range:** {books[0].volume_number} - {books[-1].volume_number}")
+-            with col4:
+-                st.write(f"**Total Volumes:** {len(books)}")
++        # Enhanced: Display enhanced volume info with cache data
++        processed_volumes = [book.volume_number for book in books]
++        cache_info = display_enhanced_volume_info(series_name, processed_volumes)
+
+         # Volume details table
+         st.subheader("Volume Details")

@@ -717,18 +717,18 @@ class DeepSeekAPI:
         Provide comprehensive information for the manga "{series_name}" Volume {volume_number}.
 
         Return a JSON object with these exact fields:
-        - "series_name": The official series name
-        - "book_title": The specific title for this volume (e.g., "Volume 1: The Beginning")
-        - "authors": List of author names (e.g., ["Eiichiro Oda", "Masashi Kishimoto"])
-        - "msrp_cost": The retail price in USD (e.g., 9.99)
-        - "isbn_13": The 13-digit ISBN (e.g., "9781421502670")
-        - "publisher_name": The publisher (e.g., "VIZ Media", "Kodansha Comics")
-        - "copyright_year": The copyright year (e.g., 2003)
-        - "description": A brief description of the volume's content
-        - "physical_description": Physical details like pages, dimensions (e.g., "192 pages, 5 x 7.5 inches")
-        - "genres": List of genres (e.g., ["Action", "Adventure", "Fantasy"])
-        - "number_of_extant_volumes": Total number of volumes in the series
-        - "cover_image_url": URL to the cover image if available
+        - \"series_name\": The official series name
+        - \"book_title\": The specific title for this volume (e.g., \"Volume 1: The Beginning\")
+        - \"authors\": List of author names (e.g., [\"Eiichiro Oda\", \"Masashi Kishimoto\"])
+        - \"msrp_cost\": The retail price in USD (e.g., 9.99)
+        - \"isbn_13\": The 13-digit ISBN (e.g., \"9781421502670\")
+        - \"publisher_name\": The publisher (e.g., \"VIZ Media\", \"Kodansha Comics\")
+        - \"copyright_year\": The copyright year (e.g., 2003)
+        - \"description\": A brief description of the volume's content
+        - \"physical_description\": Physical details like pages, dimensions (e.g., \"192 pages, 5 x 7.5 inches\")
+        - \"genres\": List of genres (e.g., [\"Action\", \"Adventure\", \"Fantasy\"])
+        - \"number_of_extant_volumes\": Total number of volumes in the series
+        - \"cover_image_url\": URL to the cover image if available
 
         Important:
         - Return ONLY valid JSON, no additional text
@@ -833,7 +833,7 @@ class GoogleBooksAPI:
                 return cached_url
 
         # Construct the API URL with key - search for first volume specifically
-        search_query = f'"{series_name}" "vol. 1" manga'
+        search_query = f'\"{series_name}\" \"vol. 1\" manga'
         url = f"{self.base_url}?q={search_query}&maxResults=5&key={self.api_key}"
 
         try:
@@ -844,7 +844,7 @@ class GoogleBooksAPI:
 
             if data.get("totalItems", 0) == 0:
                 # If no results with "vol. 1", try just the series name
-                search_query = f'"{series_name}" manga'
+                search_query = f'\"{series_name}\" manga'
                 url = f"{self.base_url}?q={search_query}&maxResults=5&key={self.api_key}"
                 response = requests.get(url, timeout=10, verify=True)
                 response.raise_for_status()
@@ -1034,7 +1034,7 @@ class VertexAIAPI:
             import re
 
             # Initialize the model
-            model = GenerativeModel("gemini-2.5-pro")
+            model = GenerativeModel("gemini-1.5-pro-001")
 
             # Create a comprehensive prompt for series information
             prompt = f"""
@@ -1129,7 +1129,7 @@ class VertexAIAPI:
             import re
 
             # Initialize the model
-            model = GenerativeModel("gemini-2.5-pro")
+            model = GenerativeModel("gemini-1.5-pro-001")
 
             # Create a comprehensive prompt for book information
             prompt = f"""
@@ -1202,6 +1202,54 @@ class VertexAIAPI:
 
         except Exception as e:
             print(f"Vertex AI book info failed: {e}")
+            return None
+
+    def get_msrp_with_grounding(self, series_name: str, volume_number: int) -> Union[float, None]:
+        """
+        Get MSRP for a manga volume using Vertex AI with grounding.
+
+        Args:
+            series_name: Name of the manga series
+            volume_number: Volume number
+
+        Returns:
+            MSRP as a float or None if not found
+        """
+        try:
+            from vertexai.generative_models import GenerativeModel, Tool
+            import re
+
+            # Initialize the model
+            model = GenerativeModel("gemini-1.5-flash-001")
+
+            # Create a prompt for MSRP
+            prompt = f"""
+            What is the Manufacturer's Suggested Retail Price (MSRP) in USD for the manga "{series_name}" Volume {volume_number}?
+            Return only the numerical value (e.g., 9.99).
+            """
+
+            # Use Google Search grounding
+            tool = Tool.from_google_search_retrieval()
+
+            # Generate response
+            response = model.generate_content(
+                prompt,
+                tools=[tool],
+            )
+            response_text = response.text
+
+            # Parse the response to get the MSRP
+            # Find a number (integer or float) in the response
+            match = re.search(r'(\d+\.\d+|\d+)', response_text)
+            if match:
+                msrp = float(match.group(1))
+                # Basic validation
+                if MIN_MSRP <= msrp <= MAX_MSRP:
+                    return msrp
+            return None
+
+        except Exception as e:
+            print(f"Vertex AI MSRP lookup failed: {e}")
             return None
 
 
@@ -1384,7 +1432,7 @@ def validate_series_name(series_name: str) -> bool:
         return False
 
     # Check for reasonable characters (allow letters, numbers, spaces, common punctuation)
-    if not re.match(r'^[\w\s\-\.\,\'()!?:]+$', series_name):
+    if not re.match(r'^[\\w\s\-\.\,\'()!?:]+$', series_name):
         return False
 
     return True

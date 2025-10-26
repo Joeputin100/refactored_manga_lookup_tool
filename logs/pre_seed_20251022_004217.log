@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/pre_seed_cache.py", line 18, in <module>
+    from manga_lookup import MangaLookup
+ImportError: cannot import name 'MangaLookup' from 'manga_lookup' (/data/data/com.termux/files/home/projects/refactored_manga_lookup_tool/manga_lookup.py)

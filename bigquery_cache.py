@@ -312,6 +312,71 @@ class BigQueryCache:
 
         return None
 
+    def get_volumes_for_series(self, series_name: str, volumes: List[int]) -> List[Optional[Dict]]:
+        """
+        Get multiple volumes for a series in a single query
+        This is much more efficient than individual queries
+        """
+        if not self.enabled or not volumes:
+            return [None] * len(volumes)
+
+        # Validate table name
+        if not self._validate_table_name(self.dataset_id):
+            print(f"❌ Invalid dataset name: {self.dataset_id}")
+            return [None] * len(volumes)
+
+        try:
+            # Create IN clause for volumes
+            volumes_str = ", ".join(str(v) for v in volumes)
+
+            query = """
+                SELECT * FROM `{project}.{dataset}.volume_info`
+                WHERE LOWER(series_name) = LOWER(@series_name)
+                AND volume_number IN ({volumes_list})
+                ORDER BY volume_number
+            """.format(
+                project=self.client.project,
+                dataset=self.dataset_id,
+                volumes_list=volumes_str
+            )
+
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("series_name", "STRING", series_name),
+                ]
+            )
+
+            query_job = self.client.query(query, job_config=job_config)
+            results = list(query_job)
+
+            # Create a mapping of volume_number to result
+            result_map = {}
+            for row in results:
+                volume_num = row.get("volume_number")
+                result_map[volume_num] = {
+                    "series_name": row.get("series_name"),
+                    "volume_number": row.get("volume_number"),
+                    "book_title": row.get("book_title"),
+                    "authors": list(row.get("authors", [])),
+                    "isbn_13": row.get("isbn_13"),
+                    "publisher_name": row.get("publisher_name"),
+                    "copyright_year": row.get("copyright_year"),
+                    "description": row.get("description"),
+                    "physical_description": row.get("physical_description"),
+                    "genres": list(row.get("genres", [])),
+                    "msrp_cost": row.get("msrp_cost"),
+                    "cover_image_url": row.get("cover_image_url"),
+                    "cached": True,
+                    "cache_source": "bigquery"
+                }
+
+            # Return results in the same order as requested volumes
+            return [result_map.get(volume) for volume in volumes]
+
+        except Exception as e:
+            print(f"❌ BigQuery batch query failed for {series_name}: {e}")
+            return [None] * len(volumes)
+
     def cache_volume_info(self, series_name: str, volume_number: int, volume_info: Dict, api_source: str = "vertex_ai"):
         """Cache volume information"""
         if not self.enabled:

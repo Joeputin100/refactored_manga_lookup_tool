@@ -1,0 +1,123 @@
+{
+  "timestamp": "2025-10-24T23:49:00Z",
+  "summary": "Long-running tasks progress report - metadata fixing at 45.5% and volume loading active",
+  "aws_instance_status": {
+    "host": "ec2-52-15-93-20.us-east-2.compute.amazonaws.com",
+    "status": "running",
+    "streamlit_app": "running on port 8501",
+    "background_tasks": {
+      "metadata_fixer": {
+        "status": "running",
+        "bash_id": "e6ac96",
+        "progress": "25/55 series completed (45.5%)",
+        "current_series": "Haikyuu!",
+        "success_rate": "100% (25/25 successful)",
+        "metadata_fixed": 25,
+        "covers_fixed": 25,
+        "errors": 0,
+        "estimated_completion": "~1.5 hours remaining"
+      },
+      "volume_loader": {
+        "status": "running",
+        "bash_id": "377ac7",
+        "progress": "Loading Gantz volumes (currently volume 34)",
+        "current_series": "Gantz",
+        "api_success_rate": "100% via DeepSeek API",
+        "estimated_completion": "Several hours for all 55 series"
+      }
+    }
+  },
+  "oracle_cloud_instance_status": {
+    "host": "159.54.179.141",
+    "status": "running",
+    "streamlit_app": "running on port 8501",
+    "background_tasks": "none currently running",
+    "tmux_session": "available"
+  },
+  "metadata_fixer_progress_details": {
+    "total_series": 55,
+    "processed": 25,
+    "percentage_complete": 45.5,
+    "recently_processed_series": [
+      "Attack on Titan",
+      "Attack on Titan: Colossal Edition",
+      "Attack on Titan: No Regrets",
+      "Attack on Titan: Before the Fall",
+      "One Piece",
+      "Naruto",
+      "Boruto: Naruto Next Generation",
+      "Boruto: Two Blue Vortex",
+      "Dragon Ball Z",
+      "Bleach",
+      "Fairy Tail",
+      "Hunter x Hunter",
+      "My Hero Academia",
+      "Tokyo Ghoul",
+      "Tokyo Ghoul: re",
+      "Bakuman",
+      "Hikaru no Go",
+      "Tegami Bachi",
+      "Death Note",
+      "Berserk",
+      "Akira",
+      "Inuyasha",
+      "Ranma 1/2",
+      "Tokyo Revengers",
+      "To Your Eternity"
+    ],
+    "current_series": "Haikyuu!",
+    "next_series": "Assassination Classroom"
+  },
+  "volume_loading_progress_details": {
+    "current_series": "Gantz",
+    "current_volume": 34,
+    "api_used": "DeepSeek API",
+    "success_rate": "100%",
+    "recent_volumes_loaded": [
+      "Gantz Vol 31",
+      "Gantz Vol 32",
+      "Gantz Vol 33"
+    ],
+    "estimated_remaining_volumes": "Continuing through Gantz series"
+  },
+  "notable_issues": {
+    "bigquery_schema_validation": {
+      "status": "minor",
+      "affected_series": [
+        "Attack on Titan: Colossal Edition",
+        "Boruto: Two Blue Vortex",
+        "My Hero Academia",
+        "To Your Eternity"
+      ],
+      "issue": "Cannot convert value to integer (bad value) for total_volumes field",
+      "impact": "Series info still cached successfully, but with validation warnings",
+      "resolution": "Non-critical - metadata and covers still successfully cached"
+    },
+    "tegami_bachi_resolution": {
+      "status": "resolved",
+      "action": "Successfully fixed metadata and cover for Tegami Bachi",
+      "volume_count": "Correctly set to 20 volumes",
+      "cover_image": "Successfully retrieved and cached",
+      "missing_fields": "All missing fields (genres, publisher, status, alternative_titles, adaptations) successfully filled"
+    }
+  },
+  "performance_metrics": {
+    "metadata_fixer": {
+      "processing_rate": "~2.5 minutes per series",
+      "api_success_rate": "100% (Vertex AI)",
+      "cover_success_rate": "100% (DeepSeek)"
+    },
+    "volume_loader": {
+      "processing_rate": "~15-30 seconds per volume",
+      "api_success_rate": "100% (DeepSeek)",
+      "cache_success_rate": "100%"
+    }
+  },
+  "recommendations": [
+    "Continue monitoring both background tasks for completion",
+    "Verify application displays correct volume counts after metadata fixes complete",
+    "Consider starting additional volume loading on Oracle Cloud for parallel processing",
+    "Test application with complete metadata and cover images after both tasks finish"
+  ],
+  "next_status_check": "2025-10-24T23:59:00Z (10 minutes from now)"
+}
