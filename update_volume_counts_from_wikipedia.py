@@ -88,7 +88,7 @@ def update_volume_counts():
             # Update the series_info table
             update_query = f"""
             UPDATE `static-webbing-461904-c4.manga_lookup_cache.series_info`
-            SET extant_volumes = {volume_count}
+            SET total_volumes = {volume_count}
             WHERE series_name = "{series_name}"
             """
 
