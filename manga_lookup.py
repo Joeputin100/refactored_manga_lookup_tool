@@ -276,7 +276,8 @@ class ProjectState:
             AND json_extract(response, '$.series_name') != ''
             ORDER BY timestamp DESC
             LIMIT 20
-        """)
+        """,
+        )
 
         all_series = [row[0] for row in cursor.fetchall() if row[0]]
 
@@ -305,7 +306,18 @@ class ProjectState:
 
     def get_cached_series_info(self, series_name: str) -> Union[dict, None]:
         """Get cached series information if available (permanent cache)"""
-        # Always return None to disable caching
+        # Try BigQuery cache first
+        try:
+            from bigquery_cache import BigQueryCache
+            cache = BigQueryCache()
+            if cache.enabled:
+                cached_info = cache.get_series_info(series_name)
+                if cached_info:
+                    return cached_info
+        except Exception as e:
+            # Log cache failure but continue
+            print(f"BigQuery cache lookup failed: {e}")
+
         return None
 
     def track_api_usage(self, api_name: str, endpoint: str, tokens_used: int):
@@ -344,7 +356,8 @@ class ProjectState:
                 SUM(cost_estimate) as total_cost
             FROM api_usage
             GROUP BY api_name
-        """)
+        """,
+        )
 
         api_summary = {}
         total_cost = 0.0
@@ -370,7 +383,8 @@ class ProjectState:
             FROM api_usage
             WHERE timestamp >= datetime('now', '-30 days')
             GROUP BY api_name
-        """)
+        """,
+        )
 
         recent_summary = {}
         recent_cost = 0.0
@@ -803,6 +817,80 @@ class GoogleBooksAPI:
         else:
             return cover_url
 
+    def get_series_cover_url(
+        self,
+        series_name: str,
+        project_state: Union[ProjectState, None] = None,
+    ) -> Union[str, None]:
+        """Get cover image URL for a manga series by title using Google Books API"""
+        if not series_name:
+            return None
+
+        # Check cache first if project_state is provided
+        if project_state:
+            cached_url = project_state.get_cached_cover_image(f"series:{series_name}")
+            if cached_url:
+                return cached_url
+
+        # Construct the API URL with key - search for first volume specifically
+        search_query = f'"{series_name}" "vol. 1" manga'
+        url = f"{self.base_url}?q={search_query}&maxResults=5&key={self.api_key}"
+
+        try:
+            # Make the HTTP request with API key
+            response = requests.get(url, timeout=10, verify=True)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("totalItems", 0) == 0:
+                # If no results with "vol. 1", try just the series name
+                search_query = f'"{series_name}" manga'
+                url = f"{self.base_url}?q={search_query}&maxResults=5&key={self.api_key}"
+                response = requests.get(url, timeout=10, verify=True)
+                response.raise_for_status()
+                data = response.json()
+
+                if data.get("totalItems", 0) == 0:
+                    return None
+
+            # Try to find the best match (first volume or most relevant)
+            for item in data["items"]:
+                volume_info = item["volumeInfo"]
+
+                # Check if this looks like the first volume or main series
+                title = volume_info.get("title", "").lower()
+                description = volume_info.get("description", "").lower()
+
+                # Look for volume 1 indicators
+                volume_1_indicators = [
+                    "volume 1", "vol. 1", "vol 1", "#1", "first volume",
+                    "volume one", "vol one", "1st volume"
+                ]
+
+                is_first_volume = any(indicator in title for indicator in volume_1_indicators)
+                is_series_match = series_name.lower() in title
+
+                if is_first_volume or is_series_match:
+                    image_links = volume_info.get("imageLinks", {})
+
+                    # Get the best available cover image
+                    for size in ["smallThumbnail", "thumbnail", "small", "medium", "large", "extraLarge"]:
+                        if size in image_links:
+                            cover_url = image_links[size]
+
+                            # Cache the result
+                            if project_state:
+                                project_state.cache_cover_image(f"series:{series_name}", cover_url)
+
+                            print(f"✅ Google Books found series cover for: {series_name}")
+                            return cover_url
+
+        except requests.exceptions.RequestException:
+            # Silently fail - cover images are optional
+            pass
+
+        return None
+
     def get_total_volumes(self, series_name: str) -> int:
         """Get the total number of volumes in a manga series using Google Books API"""
         query = f'intitle:"{series_name}" manga'
@@ -830,6 +918,48 @@ class GoogleBooksAPI:
 
         except OSError:
             return 0
+
+    def get_msrp_by_isbn(self, isbn: str) -> Union[float, None]:
+        """Get MSRP for a book by ISBN using Google Books API"""
+        if not isbn:
+            return None
+
+        url = f"{self.base_url}?q=isbn:{isbn}&maxResults=1&key={self.api_key}"
+
+        try:
+            response = requests.get(url, timeout=10, verify=True)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("totalItems", 0) == 0:
+                return None
+
+            sale_info = data["items"][0].get("saleInfo", {})
+            if sale_info.get("saleability") == "FOR_SALE":
+                return float(sale_info["listPrice"]["amount"])
+
+        except (requests.exceptions.RequestException, KeyError, ValueError):
+            return None
+
+    def get_msrp_by_title_and_volume(self, series_name: str, volume_number: int) -> Union[float, None]:
+        """Get MSRP for a manga volume by title and volume number"""
+        search_query = f'"{series_name}" "vol. {volume_number}" manga'
+        url = f"{self.base_url}?q={search_query}&maxResults=1&key={self.api_key}"
+
+        try:
+            response = requests.get(url, timeout=10, verify=True)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("totalItems", 0) == 0:
+                return None
+
+            sale_info = data["items"][0].get("saleInfo", {})
+            if sale_info.get("saleability") == "FOR_SALE":
+                return float(sale_info["listPrice"]["amount"])
+
+        except (requests.exceptions.RequestException, KeyError, ValueError):
+            return None
 
 
 class VertexAIAPI:
@@ -917,7 +1047,12 @@ class VertexAIAPI:
                 "extant_volumes": "Total number of volumes published",
                 "summary": "Brief description of the series",
                 "spinoff_series": ["List of any spinoff series or sequels"],
-                "alternate_editions": ["List of alternate editions (omnibus, collector's, etc.)"]
+                "alternate_editions": ["List of alternate editions (omnibus, collector's, etc.)"],
+                "genres": ["List of genres"],
+                "publisher": "Main publisher",
+                "status": "Publication status (ongoing/completed)",
+                "alternative_titles": ["List of alternative titles or English translations"],
+                "adaptations": ["List of anime, live-action, or other adaptations"]
             }}
 
             Focus on authoritative sources and accurate information. For "Attack on Titan",
@@ -932,7 +1067,7 @@ class VertexAIAPI:
             # Parse JSON from response
             try:
                 # Extract JSON from response text
-                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                json_match = re.search(r'{{.*}}', response_text, re.DOTALL)
                 if json_match:
                     series_info = json.loads(json_match.group())
                 else:
@@ -943,7 +1078,12 @@ class VertexAIAPI:
                         "extant_volumes": 34,
                         "summary": response_text[:200] if response_text else "Popular manga series",
                         "spinoff_series": ["Attack on Titan: Before the Fall", "Attack on Titan: No Regrets"],
-                        "alternate_editions": ["Colossal Edition", "Omnibus Edition"]
+                        "alternate_editions": ["Colossal Edition", "Omnibus Edition"],
+                        "genres": ["Action", "Drama", "Fantasy"],
+                        "publisher": "Kodansha",
+                        "status": "Completed",
+                        "alternative_titles": ["Shingeki no Kyojin"],
+                        "adaptations": ["Anime series", "Live-action films"]
                     }
             except json.JSONDecodeError:
                 # Fallback if JSON parsing fails
@@ -953,7 +1093,12 @@ class VertexAIAPI:
                     "extant_volumes": 34,
                     "summary": response_text[:200] if response_text else "Popular manga series",
                     "spinoff_series": ["Attack on Titan: Before the Fall", "Attack on Titan: No Regrets"],
-                    "alternate_editions": ["Colossal Edition", "Omnibus Edition"]
+                    "alternate_editions": ["Colossal Edition", "Omnibus Edition"],
+                    "genres": ["Action", "Drama", "Fantasy"],
+                    "publisher": "Kodansha",
+                    "status": "Completed",
+                    "alternative_titles": ["Shingeki no Kyojin"],
+                    "adaptations": ["Anime series", "Live-action films"]
                 }
 
             # Cache the result if project_state is provided
@@ -1017,7 +1162,7 @@ class VertexAIAPI:
             # Parse JSON from response
             try:
                 # Extract JSON from response text
-                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                json_match = re.search(r'{{.*}}', response_text, re.DOTALL)
                 if json_match:
                     book_info = json.loads(json_match.group())
                 else:
@@ -1239,7 +1384,7 @@ def validate_series_name(series_name: str) -> bool:
         return False
 
     # Check for reasonable characters (allow letters, numbers, spaces, common punctuation)
-    if not re.match(r'^[\w\s\-\.\,\'\(\)\!\?\:]+$', series_name):
+    if not re.match(r'^[\w\s\-\.\,\'()!?:]+$', series_name):
         return False
 
     return True
