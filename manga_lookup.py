@@ -1048,6 +1048,34 @@ class GoogleBooksAPI:
             "Fire Force": {
                 "default": 9.99,
                 "volumes": {}
+            },
+            "Barefoot Gen": {
+                "default": 14.99,
+                "volumes": {}
+            },
+            "Tokyo Ghoul: re": {
+                "default": 10.99,
+                "volumes": {}
+            },
+            "Tokyo Revengers": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Crayon Shinchan": {
+                "default": 9.99,
+                "volumes": {}
+            },
+            "Flowers of Evil": {
+                "default": 12.99,
+                "volumes": {}
+            },
+            "Otherworldly Izakaya Nobu": {
+                "default": 12.99,
+                "volumes": {}
+            },
+            "To Your Eternity": {
+                "default": 10.99,
+                "volumes": {}
             }
         }
 
