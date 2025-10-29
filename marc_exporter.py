@@ -9,6 +9,52 @@ import re
 from datetime import datetime
 
 from pymarc import Field, Record, Subfield
+def invert_author_name(author):
+    """
+    Convert author name from 'First Last' to 'Last, First' format.
+    Handles various name formats and edge cases.
+    """
+    if not author or not isinstance(author, str):
+        return author
+
+    # If already contains comma, assume already inverted
+    if ',' in author:
+        return author
+
+    # Remove extra whitespace
+    author = ' '.join(author.split())
+
+    # Handle common manga author patterns
+    parts = author.split()
+
+    if len(parts) == 1:
+        # Single name (like "Oda")
+        return author
+    elif len(parts) == 2:
+        # Simple case: "First Last" -> "Last, First"
+        return f"{parts[1]}, {parts[0]}"
+    elif len(parts) >= 3:
+        # Multiple parts: assume last part is surname
+        surname = parts[-1]
+        given_names = ' '.join(parts[:-1])
+        return f"{surname}, {given_names}"
+    else:
+        return author
+
+
+def invert_author_list(authors):
+    """
+    Invert a list of author names.
+    """
+    if not authors:
+        return []
+
+    inverted_authors = []
+    for author in authors:
+        inverted_authors.append(invert_author_name(author))
+
+    return inverted_authors
+
 
 
 def export_books_to_marc(books: list) -> bytes:
@@ -68,7 +114,14 @@ def create_bibliographic_record(book) -> Record:
         return record
 
     except Exception as e:
-        print(f"Error creating bibliographic MARC record for {book.series_name} vol {book.volume_number}: {e}")
+        # Safe error handling for incomplete book objects
+        series_info = "unknown series"
+        volume_info = "unknown volume"
+        if hasattr(book, 'series_name') and book.series_name:
+            series_info = book.series_name
+        if hasattr(book, 'volume_number'):
+            volume_info = str(book.volume_number)
+        print(f"Error creating bibliographic MARC record for {series_info} vol {volume_info}: {e}")
         return None
 
 
@@ -104,8 +157,9 @@ def create_holding_record(book) -> Record:
 def add_control_fields(record: Record, book) -> None:
     """Add control fields to MARC record"""
     # 001 - Control Number
-    if book.barcode:
-        record.add_field(Field(tag='001', data=book.barcode))
+    barcode = getattr(book, 'barcode', None)
+    if barcode:
+        record.add_field(Field(tag='001', data=barcode))
 
     # 005 - Date and Time of Latest Transaction
     current_time = datetime.now().strftime('%Y%m%d%H%M%S.0')
@@ -134,7 +188,8 @@ def create_fixed_field(book) -> str:
     char_coding = ' '
 
     # Date 1 (publication date) - use cleaned copyright year
-    cleaned_year = clean_copyright_year(book.copyright_year)
+    copyright_year = getattr(book, 'copyright_year', None)
+    cleaned_year = clean_copyright_year(copyright_year)
     date1 = str(cleaned_year) if cleaned_year else '    '
     date1 = date1.ljust(4)
 
@@ -309,11 +364,12 @@ def add_variable_fields(record: Record, book) -> None:
     """Add variable fields to MARC record"""
 
     # 020 - ISBN
-    if book.isbn_13:
+    isbn_13 = getattr(book, 'isbn_13', None)
+    if isbn_13:
         record.add_field(Field(
             tag='020',
             indicators=[' ', ' '],
-            subfields=[Subfield('a', book.isbn_13)]
+            subfields=[Subfield('a', isbn_13)]
         ))
 
     # 040 - Cataloging Source
@@ -328,8 +384,9 @@ def add_variable_fields(record: Record, book) -> None:
     ))
 
     # 100 - Main Entry - Personal Name (Author)
-    if book.authors:
-        primary_author = book.authors[0]
+    authors = getattr(book, 'authors', None)
+    if authors:
+        primary_author = authors[0]
         record.add_field(Field(
             tag='100',
             indicators=['1', ' '],
@@ -356,20 +413,23 @@ def add_variable_fields(record: Record, book) -> None:
     record.add_field(phys_desc_field)
 
     # 490 - Series Statement
-    if book.series_name:
+    series_name = getattr(book, 'series_name', None)
+    volume_number = getattr(book, 'volume_number', None)
+    if series_name:
         record.add_field(Field(
             tag='490',
             indicators=['1', ' '],
             subfields=[
-                Subfield('a', book.series_name),
-                Subfield('v', str(book.volume_number))
+                Subfield('a', series_name),
+                Subfield('v', str(volume_number) if volume_number else '')
             ]
         ))
 
     # 520 - Summary, etc.
-    if book.description:
+    description = getattr(book, 'description', None)
+    if description:
         # Clean and truncate description
-        clean_desc = clean_text(book.description)
+        clean_desc = clean_text(description)
         if len(clean_desc) > 500:
             clean_desc = clean_desc[:497] + '...'
 
@@ -434,15 +494,21 @@ def create_title_field(book) -> Field:
     """Create 245 title field"""
     subfields = []
 
-    # Main title
-    if book.book_title:
-        subfields.append(Subfield('a', book.book_title))
+    # Main title - ensure it's never blank
+    if hasattr(book, 'book_title') and book.book_title:
+        title = book.book_title
+    elif hasattr(book, 'series_name') and book.series_name:
+        title = f'{book.series_name} Volume {book.volume_number}'
     else:
-        subfields.append(Subfield('a', f'{book.series_name} Volume {book.volume_number}'))
+        title = f'Unknown Manga Volume {book.volume_number}'
 
-    # Statement of responsibility
-    if book.authors:
-        authors_str = ' ; '.join(book.authors)
+    subfields.append(Subfield('a', title))
+
+    # Statement of responsibility - use inverted author names
+    if hasattr(book, 'authors') and book.authors:
+        # Use the pre-inverted author names
+        inverted_authors = invert_author_list(book.authors)
+        authors_str = ' ; '.join(inverted_authors)
         subfields.append(Subfield('c', authors_str))
 
     return Field(
@@ -460,8 +526,9 @@ def create_publication_field(book) -> Field:
     subfields.append(Subfield('a', '[United States]'))
 
     # Publisher
-    if book.publisher_name:
-        subfields.append(Subfield('b', book.publisher_name))
+    publisher_name = getattr(book, 'publisher_name', None)
+    if publisher_name:
+        subfields.append(Subfield('b', publisher_name))
     else:
         subfields.append(Subfield('b', 'Unknown'))
 

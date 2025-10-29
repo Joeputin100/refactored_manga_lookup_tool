@@ -1563,7 +1563,7 @@ def validate_series_name(series_name: str) -> bool:
         return False
 
     # Check for reasonable characters (allow letters, numbers, spaces, common punctuation)
-    if not re.match(r'^[\\w\s\-\.\,\'()!?:]+$', series_name):
+    if not re.match(r'^[\w\s\-\.\,\'()!?:]+$', series_name):
         return False
 
     return True
