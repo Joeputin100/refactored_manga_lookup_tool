@@ -304,6 +304,10 @@ class BigQueryCache:
                     "genres": list(row.get("genres", [])),
                     "msrp_cost": row.get("msrp_cost"),
                     "cover_image_url": row.get("cover_image_url"),
+                    "cover_image_data": row.get("cover_image_data"),
+                    "cover_image_mime_type": row.get("cover_image_mime_type"),
+                    "cover_image_size": row.get("cover_image_size"),
+                    "cover_image_source": row.get("cover_image_source"),
                     "cached": True,
                     "cache_source": "bigquery"
                 }
@@ -366,6 +370,10 @@ class BigQueryCache:
                     "genres": list(row.get("genres", [])),
                     "msrp_cost": row.get("msrp_cost"),
                     "cover_image_url": row.get("cover_image_url"),
+                    "cover_image_data": row.get("cover_image_data"),
+                    "cover_image_mime_type": row.get("cover_image_mime_type"),
+                    "cover_image_size": row.get("cover_image_size"),
+                    "cover_image_source": row.get("cover_image_source"),
                     "cached": True,
                     "cache_source": "bigquery"
                 }
@@ -397,6 +405,10 @@ class BigQueryCache:
                 "genres": volume_info.get("genres", []),
                 "msrp_cost": volume_info.get("msrp_cost"),
                 "cover_image_url": volume_info.get("cover_image_url"),
+                "cover_image_data": volume_info.get("cover_image_data"),
+                "cover_image_mime_type": volume_info.get("cover_image_mime_type"),
+                "cover_image_size": volume_info.get("cover_image_size"),
+                "cover_image_source": volume_info.get("cover_image_source"),
                 "last_updated": datetime.utcnow().isoformat(),
                 "api_source": api_source,
             }
