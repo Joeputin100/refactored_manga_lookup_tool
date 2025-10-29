@@ -162,7 +162,7 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
     inventory_number = pad_inventory_number(
         book_data.get("Holdings Barcode", "")
     )
-    msrp = book_data.get("MSRP", "")
+    msrp = book_data.get("MSRP", "") or book_data.get("msrp_cost", "")
 
 
     # Process volume title according to requirements
@@ -330,10 +330,18 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
         c.drawString(b_x, b_y, b_text)
 
         c.setFont("Courier-Bold", 10)
+        # Extract first 3 letters of author's last name
+        author_last_name = ""
+        if authors:
+            # Get first author and extract last name (before comma)
+            first_author = authors.split(',')[0].strip() if ',' in authors else authors
+            # Get last name (first part before comma, or first word if no comma)
+            last_name = first_author.split(',')[0].strip() if ',' in first_author else first_author.split()[0] if first_author else ""
+            author_last_name = last_name[:3].upper() if last_name else ""
+
         lines = [
-            "Manga",
-            dewey_number,
-            authors[:3].upper() if authors else "",
+            author_last_name,
+            "FIC / MANGA",
             str(publication_year),
             inventory_number,
         ]
@@ -416,8 +424,8 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
         max_text_left_height = barcode_height
 
         optimal_font_size_left = 10
-        if series_number and len(series_number) > 1:
-            optimal_font_size_left -= len(series_number) - 1
+        if series_number and len(str(series_number)) > 1:
+            optimal_font_size_left -= len(str(series_number)) - 1
         optimal_font_size_left = max(optimal_font_size_left, 5)
 
         optimal_font_size_left, text_block_height_left = _fit_text_to_box(
