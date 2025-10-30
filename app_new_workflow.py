@@ -1325,6 +1325,7 @@ def display_results():
                     'Series Info': book.series_name,
                     'Series Number': str(book.volume_number),
                     'Call Number': "",  # Empty for manga
+                    'MSRP': str(book.msrp_cost) if book.msrp_cost else "",  # Add MSRP for labels
                     'spine_label_id': "M"  # M for manga
                 })
 
