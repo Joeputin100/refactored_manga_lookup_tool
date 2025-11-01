@@ -1,0 +1,70 @@
+{
+  "timestamp": "2025-10-30T14:59:00Z",
+  "summary": "Testing MARC4J alternative approach for MARC export",
+  "project_files": [
+    {
+      "path": "app_new_workflow.py",
+      "description": "Main Streamlit app with diagnostic logging for BookInfo objects"
+    },
+    {
+      "path": "manga_lookup.py",
+      "description": "BookInfo class definition and manga lookup functionality"
+    },
+    {
+      "path": "marc_exporter.py",
+      "description": "Original MARC exporter using pymarc (working correctly in tests)"
+    },
+    {
+      "path": "marc_exporter_simple.py",
+      "description": "Simple pure Python MARC exporter (has encoding issues)"
+    },
+    {
+      "path": "test_streamlit_workflow_simulation.py",
+      "description": "Simulates Streamlit app workflow and tests MARC export with diagnostics"
+    },
+    {
+      "path": "automated_streamlit_test.py",
+      "description": "Automated test for Streamlit app MARC export functionality"
+    },
+    {
+      "path": "analyze_streamlit_marc.py",
+      "description": "Analyzes MARC files exported from Streamlit app for blank title issues"
+    },
+    {
+      "path": "diagnose_marc_issue.py",
+      "description": "Diagnoses MARC export issue by examining BookInfo objects and MARC output"
+    },
+    {
+      "path": "test_marc4j_exporter.py",
+      "description": "Test MARC4J exporter using JPype (currently being tested)"
+    }
+  ],
+  "credentials": {
+    "ec2_instance": "ec2-52-15-93-20.us-east-2.compute.amazonaws.com",
+    "ssh_key": "~/projects/Rosie/my-new-key.pem",
+    "user": "ec2-user"
+  },
+  "cloud_resources": {
+    "ec2_instance": {
+      "status": "running",
+      "purpose": "Streamlit app deployment and testing",
+      "access": "ssh -i \"~/projects/Rosie/my-new-key.pem\" ec2-user@ec2-52-15-93-20.us-east-2.compute.amazonaws.com"
+    }
+  },
+  "current_tasks": {
+    "status": "in_progress",
+    "description": "Testing MARC4J alternative approach for MARC export using JPype",
+    "findings": {
+      "diagnostic_logging": "Added comprehensive diagnostic logging to Streamlit app to track BookInfo object creation",
+      "local_tests": "MARC export works correctly in local tests - no blank title issues detected",
+      "root_cause": "Issue likely in Streamlit app BookInfo object creation or data flow",
+      "alternative_approach": "Testing MARC4J via JPype as alternative to pymarc"
+    },
+    "next_steps": [
+      "Complete JPype installation for Python 3.12",
+      "Test MARC4J exporter functionality",
+      "Verify MARC4J output can be read by pymarc",
+      "Deploy working solution to EC2 instance"
+    ]
+  }
+}

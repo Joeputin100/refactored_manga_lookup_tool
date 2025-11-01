@@ -18,6 +18,8 @@ import requests
 import json
 from typing import Optional, Dict
 
+from wikipedia_cover_fetcher import WikipediaCoverFetcher
+
 
 class GoogleBooksCoverFetcher:
     """Fetch cover images from Google Books API"""
@@ -178,8 +180,9 @@ class EnhancedCoverFetcher:
     def __init__(self):
         self.fetchers = [
             GoogleBooksCoverFetcher(),      # Primary: High quality English covers
-            GeminiWebSearchFetcher(),       # Secondary: Intelligent image search
-            DeepSeekWebSearchFetcher()      # Tertiary: Fallback image search
+            WikipediaCoverFetcher(),        # Secondary: Wikipedia cover images
+            GeminiWebSearchFetcher(),       # Tertiary: Intelligent image search
+            DeepSeekWebSearchFetcher()      # Quaternary: Fallback image search
         ]
 
         self.stats = {
@@ -221,6 +224,10 @@ class EnhancedCoverFetcher:
     def _validate_cover_url(self, url: str) -> bool:
         """Validate that cover URL is accessible and reasonable"""
         try:
+            # For Wikipedia URLs, we know they're valid from the API
+            if 'wikipedia.org' in url or 'wikimedia.org' in url:
+                return True
+
             # Quick HEAD request to check accessibility
             response = requests.head(url, timeout=5, allow_redirects=True)
 

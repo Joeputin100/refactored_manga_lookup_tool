@@ -1,0 +1,78 @@
+{
+  "timestamp": "2024-11-01T03:35:00Z",
+  "summary": "CRITICAL DISCOVERY: Atriuum descriptive uses SINGLE records with both bibliographic and holding information",
+  "current_status": "MARC exporter completely rewritten to match Atriuum descriptive format",
+
+  "critical_discovery": {
+    "issue": "Record doubling in Atriuum imports",
+    "root_cause": "We were creating SEPARATE bibliographic and holding records, but Atriuum descriptive uses SINGLE records",
+    "evidence": "Atriuum_Descriptive_MARC.mrc contains only ONE record with both bibliographic fields AND barcode in 852 field",
+    "key_finding": "No linking fields (004, 773) needed - all information in single record"
+  },
+
+  "atriuum_descriptive_format": {
+    "record_structure": "SINGLE record per item",
+    "bibliographic_information": "All standard bibliographic fields (001, 003, 005, 008, 040, 100, 245, 264, 300, etc.)",
+    "holding_information": "Barcode included in 852 field subfield 'p'",
+    "example": {
+      "001": "TEST-001",
+      "852": "Main Library Main Library FIC MAS 2016 TEST-001 TEST-001 $10.99 {BookSysInc::00005403::    ::BookSysInc} 10/31/2025",
+      "852 subfield p": "TEST-001"
+    }
+  },
+
+  "changes_made": {
+    "marc_exporter_rewrite": {
+      "before": "Two records per book (bibliographic + holding)",
+      "after": "One record per book (combined bibliographic + holding)",
+      "changes": [
+        "Removed create_holding_record() function",
+        "Modified export_books_to_marc_atriuum_descriptive() to create single records",
+        "Added barcode to bibliographic 852 field (subfield 'p')",
+        "Removed all linking fields (004, 773)"
+      ]
+    }
+  },
+
+  "expected_result": {
+    "record_count": "5 records for 5 volumes (not 10)",
+    "no_doubling": "No duplicate records or auto-generated serials",
+    "correct_barcodes": "All records have correct TEST-000X barcodes",
+    "atriuum_compatibility": "Should import successfully without errors"
+  },
+
+  "deployment_status": {
+    "marc_exporter_atriuum_descriptive.py": "completely_rewritten_for_single_record_approach",
+    "streamlit_app": "restarted_with_corrected_exporter",
+    "ec2_instance": "running_at_ec2-52-15-93-20.us-east-2.compute.amazonaws.com",
+    "ready_for_final_testing": true
+  },
+
+  "testing_instructions": [
+    "1. Export Fairy Tail volumes 40-49 from Streamlit app",
+    "2. Check filename shows Pacific time",
+    "3. Import MARC file into Atriuum",
+    "4. Verify 5 records import successfully (no doubling)",
+    "5. Check that all records have correct TEST-000X barcodes",
+    "6. Confirm no auto-generated serial barcodes"
+  ],
+
+  "files_updated": [
+    {
+      "path": "marc_exporter_atriuum_descriptive.py",
+      "changes": [
+        "Complete rewrite to use single-record approach",
+        "Removed holding record creation",
+        "Added barcode to bibliographic 852 field",
+        "Removed all linking fields"
+      ]
+    }
+  ],
+
+  "next_steps": [
+    "Test MARC export with Fairy Tail volumes 40-49",
+    "Verify single-record import without doubling",
+    "Confirm proper barcode assignment",
+    "Document successful Atriuum import"
+  ]
+}

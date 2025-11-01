@@ -40,7 +40,7 @@ from manga_lookup import (
     validate_series_name,
     sanitize_series_name,
 )
-from marc_exporter import export_books_to_marc
+from marc_exporter_atriuum_descriptive import export_books_to_marc_atriuum_descriptive as export_books_to_marc
 from mal_cover_fetcher import MALCoverFetcher
 from mangadex_cover_fetcher import MangaDexCoverFetcher
 
@@ -61,7 +61,13 @@ def generate_marc_filename(books: list) -> str:
     import re
 
     # Get current date/time in Pacific Standard Time
-    current_time = datetime.now()
+    from datetime import timezone, timedelta
+    import pytz
+
+    # Convert to Pacific time
+    utc_time = datetime.now(timezone.utc)
+    pacific_tz = pytz.timezone('US/Pacific')
+    current_time = utc_time.astimezone(pacific_tz)
 
     # Format date/time as "yyyy-mm-dd hhmm am/pm"
     date_part = current_time.strftime("%Y-%m-%d")
@@ -1166,10 +1172,36 @@ def display_processing():
                         if not cover_url:
                             cover_url = mangadex_fetcher.fetch_cover(series_name, volume_num)
 
+                        # Normalize title quality
+                        raw_title = book_data.get("book_title", "")
+                        if not raw_title or raw_title.strip() == "":
+                            # If blank or null, use default format
+                            normalized_title = f"{series_name}: Volume {volume_num}"
+                        else:
+                            # Check if title includes series name and volume number
+                            title_lower = raw_title.lower()
+                            series_lower = series_name.lower()
+
+                            has_series_name = series_lower in title_lower
+                            has_volume_number = f"volume {volume_num}" in title_lower or f"vol. {volume_num}" in title_lower or f"vol {volume_num}" in title_lower
+
+                            if has_series_name and has_volume_number:
+                                # Title already has both, use as-is
+                                normalized_title = raw_title
+                            elif has_series_name and not has_volume_number:
+                                # Has series name but not volume number, append volume
+                                normalized_title = f"{raw_title}: Volume {volume_num}"
+                            elif not has_series_name and has_volume_number:
+                                # Has volume number but not series name, prepend series
+                                normalized_title = f"{series_name}: {raw_title}"
+                            else:
+                                # Missing both, use full format
+                                normalized_title = f"{series_name}: {raw_title} (Volume {volume_num})"
+
                         book = BookInfo(
                             series_name=book_data.get("series_name", series_name),
                             volume_number=volume_num,
-                            book_title=book_data.get("book_title", f"{series_name} Vol. {volume_num}"),
+                            book_title=normalized_title,
                             authors=book_data.get("authors", []),
                             msrp_cost=book_data.get("msrp_cost"),
                             isbn_13=book_data.get("isbn_13"),
@@ -1294,6 +1326,22 @@ def display_results():
 
     with col1:
         try:
+            # DIAGNOSTIC: Log BookInfo objects before MARC export
+            print(f"\n🔍 DIAGNOSTIC: BookInfo objects before MARC export")
+            print(f"Number of books: {len(st.session_state.all_books)}")
+
+            for i, book in enumerate(st.session_state.all_books):
+                print(f"\nBook {i+1}:")
+                print(f"  series_name: {getattr(book, 'series_name', 'MISSING')}")
+                print(f"  volume_number: {getattr(book, 'volume_number', 'MISSING')}")
+                print(f"  book_title: {repr(getattr(book, 'book_title', 'MISSING'))}")
+                print(f"  authors: {getattr(book, 'authors', 'MISSING')}")
+                print(f"  barcode: {getattr(book, 'barcode', 'MISSING')}")
+                print(f"  msrp_cost: {getattr(book, 'msrp_cost', 'MISSING')}")
+                print(f"  copyright_year: {getattr(book, 'copyright_year', 'MISSING')}")
+                print(f"  publisher_name: {getattr(book, 'publisher_name', 'MISSING')}")
+                print(f"  isbn_13: {getattr(book, 'isbn_13', 'MISSING')}")
+
             marc_data = export_books_to_marc(st.session_state.all_books)
 
             # Generate filename with date/time and sanitized series names
