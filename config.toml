@@ -1,8 +1,7 @@
 [server]
 headless = true
 port = 8501
-enableCORS = true
-enableXsrfProtection = true
+enableCORS = false
 enableStaticServing = true
 
 [browser]
