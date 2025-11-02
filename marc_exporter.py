@@ -56,6 +56,44 @@ def invert_author_list(authors):
     return inverted_authors
 
 
+def get_author_initials(author):
+    """Extract first 3 letters of author's last name in uppercase"""
+    if not author:
+        return "UNK"
+
+    # Handle inverted format "Last, First"
+    if ',' in author:
+        last_name = author.split(',')[0].strip()
+    else:
+        # Handle "First Last" format
+        parts = author.split()
+        last_name = parts[-1] if parts else ""
+
+    # Get first 3 letters, uppercase, padded if needed
+    initials = last_name[:3].upper()
+    return initials.ljust(3, 'X') if len(initials) < 3 else initials
+
+
+def create_call_number(book):
+    """Create call number: FIC [Author initials] [Year] [Barcode]"""
+    # Get author initials
+    authors = getattr(book, 'authors', [])
+    author_initials = "UNK"
+    if authors:
+        author_initials = get_author_initials(authors[0])
+
+    # Get copyright year
+    copyright_year = getattr(book, 'copyright_year', None)
+    cleaned_year = clean_copyright_year(copyright_year)
+    year_str = cleaned_year if cleaned_year else "0000"
+
+    # Get barcode
+    barcode = getattr(book, 'barcode', "UNKNOWN")
+
+    # Format: FIC MAS 2008 BARCODE#
+    return f"FIC {author_initials} {year_str} {barcode}"
+
+
 
 def export_books_to_marc(books: list) -> bytes:
     """
@@ -103,7 +141,7 @@ def create_bibliographic_record(book) -> Record:
         record = Record()
 
         # Leader (mandatory)
-        record.leader = '00000nam a2200000Ia 4500'
+        record.leader = '00000nam a2200000   4500'
 
         # Control fields
         add_control_fields(record, book)
@@ -139,7 +177,7 @@ def create_holding_record(book) -> Record:
         record = Record()
 
         # Leader for holding record
-        record.leader = '00000n   a2200000Ia 4500'
+        record.leader = '00000nu  a2200000   4500'
 
         # Control fields for holding record
         add_holding_control_fields(record, book)
@@ -316,47 +354,64 @@ def create_holding_fixed_field(book) -> str:
 def add_holding_variable_fields(record: Record, book) -> None:
     """Add variable fields to holding record"""
 
-    # 852 - Location
+    # 852 - Location with proper call number format
+    call_number = create_call_number(book)
     record.add_field(Field(
         tag='852',
         indicators=[' ', ' '],
         subfields=[
             Subfield('a', 'MANG'),  # Location code
             Subfield('b', 'Manga Collection'),  # Sublocation
-            Subfield('h', book.barcode if book.barcode else 'UNKNOWN')
+            Subfield('h', call_number)  # Call number in proper format
         ]
     ))
 
+    # 245 - Title Statement (added to match Atriuum holding record format)
+    title_field = create_title_field(book)
+    record.add_field(title_field)
+
+
     # 856 - Electronic Location and Access
-    cover_image_url = getattr(book, 'cover_image_url', None)
-    if cover_image_url:
+    if book.cover_image_url:
         record.add_field(Field(
             tag='856',
             indicators=['4', '1'],
             subfields=[
-                Subfield('u', cover_image_url),
+                Subfield('u', book.cover_image_url),
                 Subfield('z', 'Cover image')
             ]
         ))
 
+    # 876 - Item Information
+    barcode = getattr(book, 'barcode', None)
+    if barcode:
+        record.add_field(Field(
+            tag='876',
+            indicators=[' ', ' '],
+            subfields=[
+                Subfield('a', barcode),  # Barcode
+                Subfield('p', barcode),  # Material barcode (Text format)
+                Subfield('j', 'Text')    # Material type
+            ]
+        ))
+
     # 020 - Price (MSRP) in holding record
-    msrp_value = getattr(book, 'msrp_cost', None)
-    if msrp_value:
+    if hasattr(book, 'msrp') and book.msrp:
         record.add_field(Field(
             tag='020',
             indicators=[' ', ' '],
             subfields=[
-                Subfield('c', f'${msrp_value:.2f}')  # Price field
+                Subfield('c', f'${book.msrp:.2f}')  # Price field
             ]
         ))
 
     # 037 - Source of Acquisition (Cost) in holding record
-    if msrp_value:
+    if hasattr(book, 'msrp') and book.msrp:
         record.add_field(Field(
             tag='037',
             indicators=[' ', ' '],
             subfields=[
-                Subfield('a', f'${msrp_value:.2f}'),  # Cost field
+                Subfield('a', f'${book.msrp:.2f}'),  # Cost field
                 Subfield('b', 'MSRP')
             ]
         ))
@@ -388,12 +443,11 @@ def add_variable_fields(record: Record, book) -> None:
     # 100 - Main Entry - Personal Name (Author)
     authors = getattr(book, 'authors', None)
     if authors:
-        primary_author = authors[0]
-        inverted_author = invert_author_name(primary_author)
+        primary_author = invert_author_name(authors[0])
         record.add_field(Field(
             tag='100',
             indicators=['1', ' '],
-            subfields=[Subfield('a', inverted_author)]
+            subfields=[Subfield('a', primary_author)]
         ))
 
     # 245 - Title Statement
@@ -443,8 +497,7 @@ def add_variable_fields(record: Record, book) -> None:
         ))
 
     # 650 - Subject Added Entry - Topical Term
-    genres = getattr(book, 'genres', [])
-    for genre in genres[:3]:  # Limit to first 3 genres
+    for genre in book.genres[:3]:  # Limit to first 3 genres
         record.add_field(Field(
             tag='650',
             indicators=[' ', '0'],
@@ -462,13 +515,12 @@ def add_variable_fields(record: Record, book) -> None:
     ))
 
     # 856 - Electronic Location and Access (Cover Image)
-    cover_image_url = getattr(book, 'cover_image_url', None)
-    if cover_image_url:
+    if book.cover_image_url:
         record.add_field(Field(
             tag='856',
             indicators=['4', '1'],
             subfields=[
-                Subfield('u', cover_image_url),
+                Subfield('u', book.cover_image_url),
                 Subfield('z', 'Cover image')
             ]
         ))
@@ -496,16 +548,25 @@ def add_variable_fields(record: Record, book) -> None:
 
 
 def create_title_field(book) -> Field:
-    """Create 245 title field"""
+    """Create 245 title field - ROBUST VERSION"""
     subfields = []
 
     # Main title - ensure it's never blank
-    if hasattr(book, 'book_title') and book.book_title:
-        title = book.book_title
+    title = ""
+
+    # Try multiple fallback strategies
+    if hasattr(book, 'book_title') and book.book_title and book.book_title.strip():
+        title = book.book_title.strip()
     elif hasattr(book, 'series_name') and book.series_name:
-        title = f'{book.series_name} Volume {book.volume_number}'
+        volume_num = getattr(book, 'volume_number', 1)
+        title = f'{book.series_name} Volume {volume_num}'
     else:
-        title = f'Unknown Manga Volume {book.volume_number}'
+        volume_num = getattr(book, 'volume_number', 1)
+        title = f'Manga Volume {volume_num}'
+
+    # Ensure title is never empty
+    if not title or not title.strip():
+        title = "Unknown Manga Title"
 
     subfields.append(Subfield('a', title))
 
@@ -538,8 +599,7 @@ def create_publication_field(book) -> Field:
         subfields.append(Subfield('b', 'Unknown'))
 
     # Date of publication - use cleaned copyright year
-    copyright_year = getattr(book, 'copyright_year', None)
-    cleaned_year = clean_copyright_year(copyright_year)
+    cleaned_year = clean_copyright_year(book.copyright_year)
     if cleaned_year:
         subfields.append(Subfield('c', str(cleaned_year)))
     else:
@@ -557,10 +617,9 @@ def create_physical_description_field(book) -> Field:
     subfields = []
 
     # Extent
-    physical_description = getattr(book, 'physical_description', None)
-    if physical_description:
+    if book.physical_description:
         # Try to extract page count from physical description
-        page_match = re.search(r'(\d+)\s*pages?', physical_description, re.IGNORECASE)
+        page_match = re.search(r'(\d+)\s*pages?', book.physical_description, re.IGNORECASE)
         if page_match:
             subfields.append(Subfield('a', f'{page_match.group(1)} pages'))
         else:
@@ -586,20 +645,22 @@ def clean_copyright_year(year):
     if not year:
         return None
 
-    # Convert to string and extract only digits
+    # Convert to string and remove 'c' prefix and dots
     year_str = str(year)
-    digits_only = re.sub(r'\D', '', year_str)
+    # Remove 'c' prefix and any non-digit characters except digits
+    year_str = re.sub(r'^c', '', year_str, flags=re.IGNORECASE)
+    year_str = re.sub(r'[^0-9]', '', year_str)
 
     # Ensure we have a 4-digit year
-    if len(digits_only) == 4:
-        return digits_only
-    elif len(digits_only) == 2:
+    if len(year_str) == 4:
+        return year_str
+    elif len(year_str) == 2:
         # Assume 20th/21st century
-        year_num = int(digits_only)
+        year_num = int(year_str)
         if year_num <= 50:  # If year <= 50, assume 2000s
-            return f"20{digits_only}"
+            return f"20{year_str}"
         else:  # If year > 50, assume 1900s
-            return f"19{digits_only}"
+            return f"19{year_str}"
     else:
         # If we can't determine, return None
         return None
