@@ -54,6 +54,25 @@ def get_author_initials(author):
     return initials.ljust(3, 'X') if len(initials) < 3 else initials
 
 
+def format_author_inverted(author):
+    """Convert author name to inverted format (Last, First)"""
+    if not author:
+        return ""
+
+    # If already in inverted format, return as-is
+    if ',' in author:
+        return author
+
+    # Convert "First Last" to "Last, First"
+    parts = author.strip().split()
+    if len(parts) >= 2:
+        # Assume "First Last" format, convert to "Last, First"
+        return f"{parts[-1]}, {' '.join(parts[:-1])}"
+    else:
+        # Single name, return as-is
+        return author
+
+
 def create_call_number(book):
     """Create call number: FIC [Author initials] [Year] [Barcode]"""
     # Get author initials
