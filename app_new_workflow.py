@@ -1695,7 +1695,7 @@ def main():
     /* Background styling */
     .stApp {
         background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
-                    url('app/static/background.jpg');
+                    url('static/background.jpg');
         background-size: cover;
         background-attachment: fixed;
     }
@@ -1740,7 +1740,7 @@ def main():
         # Logo in sidebar
         st.markdown("""
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="app/static/logo.jpg" style="width: 280px; height: 70px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="AET Logo">
+            <img src="static/logo.jpg" style="width: 280px; height: 70px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="AET Logo">
         </div>
         """, unsafe_allow_html=True)
 
