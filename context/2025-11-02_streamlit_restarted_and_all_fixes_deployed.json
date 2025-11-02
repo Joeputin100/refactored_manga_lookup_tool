@@ -1,0 +1,97 @@
+{
+  "timestamp": "2025-11-02T15:10:00Z",
+  "summary": "Streamlit service restarted on EC2 with all UI improvements deployed",
+  "current_status": {
+    "google_books_api": {
+      "status": "✅ SCHEDULED",
+      "execution_time": "2025-11-03T09:07:15Z",
+      "rate_limiting": "1 req/sec (100% of limit)",
+      "daily_quota": "900 requests (90% of 1000 limit)",
+      "processing_mode": "Single worker, sequential processing"
+    },
+    "streamlit_app": {
+      "status": "✅ ACTIVE",
+      "instance": "ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501",
+      "accessibility": "HTTP 200 (working)",
+      "process_id": "809371",
+      "running_in": "screen session 'streamlit'"
+    },
+    "old_streamlit_instance": {
+      "status": "❌ OFFLINE",
+      "instance": "ec2-3-145-244-179.us-east-2.compute.amazonaws.com:8501",
+      "accessibility": "HTTP 000 (connection timeout)"
+    },
+    "ec2_instance": {
+      "status": "✅ ACTIVE",
+      "instance_id": "ec2-52-15-93-20.us-east-2.compute.amazonaws.com",
+      "region": "us-east-2",
+      "connection": "SSH working"
+    }
+  },
+  "restart_actions": {
+    "steps_performed": [
+      "Killed existing Streamlit processes (pkill -f streamlit)",
+      "Started new Streamlit service in screen session",
+      "Verified service is running and accessible (HTTP 200)"
+    ],
+    "app_location": "/home/ec2-user/refactored_manga_lookup_tool/app_new_workflow.py",
+    "command_used": "screen -dmS streamlit streamlit run app_new_workflow.py --server.headless true --server.port 8501"
+  },
+  "deployed_improvements": {
+    "ui_bugs_fixed": [
+      "Top bar template text now shows actual values (not {total_series} etc.)",
+      "Top bar background color: cyan text on dark gray",
+      "Logo and help card moved to sidebar for better layout"
+    ],
+    "new_features": [
+      "ISBN and Publisher columns added to results table",
+      "Library identifier prompt restored for label printing (default 'B')",
+      "Optimized table rendering with batch BigQuery queries",
+      "Improved progress bar smoothness (0.02s delay)"
+    ],
+    "layout_improvements": {
+      "sidebar": ["Logo image (280px)", "App title", "Help card with instructions"],
+      "main_content": ["Simplified header", "Workflow steps", "Results display"],
+      "top_bar": ["Queued series summary (sticky with actual counts)"]
+    }
+  },
+  "access_urls": {
+    "active_app": "http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501",
+    "old_app": "http://ec2-3-145-244-179.us-east-2.compute.amazonaws.com:8501 (offline)"
+  },
+  "monitoring_commands": {
+    "check_streamlit_status": "ssh -i ~/projects/Rosie/my-new-key.pem ec2-user@ec2-52-15-93-20.us-east-2.compute.amazonaws.com 'ps aux | grep streamlit'",
+    "test_app_access": "curl -s -o /dev/null -w '%{http_code}' http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501",
+    "check_google_books_schedule": "ssh -i ~/projects/Rosie/my-new-key.pem ec2-user@ec2-52-15-93-20.us-east-2.compute.amazonaws.com 'ps aux | grep google_books'"
+  },
+  "next_steps": {
+    "immediate": [
+      "Test all UI improvements in the live app",
+      "Verify top bar displays actual series/volume counts",
+      "Test label printing with library identifier prompt",
+      "Check sidebar layout and help card functionality"
+    ],
+    "scheduled": [
+      "Monitor Google Books execution starting 2025-11-03T09:07:15Z",
+      "Check processing results in /tmp/google_books_results_orchestrator.json",
+      "Verify quota tracking is working correctly"
+    ]
+  },
+  "testing_checklist": {
+    "top_bar": [
+      "Add series and volumes to see if counts update correctly",
+      "Verify cyan text on dark gray background",
+      "Check sticky positioning during scroll"
+    ],
+    "sidebar": [
+      "Verify logo displays at 280px width",
+      "Test help card expand/collapse functionality",
+      "Confirm sidebar layout on different screen sizes"
+    ],
+    "results_table": [
+      "Process volumes and verify ISBN/Publisher columns",
+      "Test label printing with library identifier prompt",
+      "Verify table rendering performance"
+    ]
+  }
+}

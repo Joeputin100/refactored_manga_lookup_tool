@@ -45,6 +45,92 @@ from mal_cover_fetcher import MALCoverFetcher
 from mangadex_cover_fetcher import MangaDexCoverFetcher
 
 
+def get_series_cover_from_bigquery(series_name: str):
+    """Get series cover image from BigQuery cache"""
+    try:
+        from bigquery_cache import BigQueryCache
+        cache = BigQueryCache()
+
+        # Sanitize series name for query
+        sanitized_name = sanitize_series_name(series_name)
+
+        query = f'''
+        SELECT cover_image_data
+        FROM `static-webbing-461904-c4.manga_lookup_cache.cover_images`
+        WHERE LOWER(series_name) = LOWER("{sanitized_name}")
+        LIMIT 1
+        '''
+
+        result = cache.client.query(query).result()
+        for row in result:
+            if hasattr(row, 'cover_image_data') and row.cover_image_data:
+                return row.cover_image_data
+
+        return None
+    except Exception as e:
+        if st.session_state.get('debug_mode', False):
+            st.warning(f"BigQuery series cover lookup failed: {e}")
+        return None
+
+
+def get_volume_cover_from_bigquery(series_name: str, volume_number: int):
+    """Get volume cover image from BigQuery cache"""
+    try:
+        from bigquery_cache import BigQueryCache
+        cache = BigQueryCache()
+
+        # Sanitize series name for query
+        sanitized_name = sanitize_series_name(series_name)
+
+        query = f'''
+        SELECT cover_image_data
+        FROM `static-webbing-461904-c4.manga_lookup_cache.volume_covers`
+        WHERE LOWER(series_name) = LOWER("{sanitized_name}")
+        AND volume_number = {volume_number}
+        LIMIT 1
+        '''
+
+        result = cache.client.query(query).result()
+        for row in result:
+            if hasattr(row, 'cover_image_data') and row.cover_image_data:
+                return row.cover_image_data
+
+        return None
+    except Exception as e:
+        if st.session_state.get('debug_mode', False):
+            st.warning(f"BigQuery volume cover lookup failed: {e}")
+        return None
+
+
+def get_any_volume_cover_from_bigquery(series_name: str):
+    """Get any available volume cover image from BigQuery cache for a series"""
+    try:
+        from bigquery_cache import BigQueryCache
+        cache = BigQueryCache()
+
+        # Sanitize series name for query
+        sanitized_name = sanitize_series_name(series_name)
+
+        query = f'''
+        SELECT cover_image_data, volume_number
+        FROM `static-webbing-461904-c4.manga_lookup_cache.volume_covers`
+        WHERE LOWER(series_name) = LOWER("{sanitized_name}")
+        ORDER BY volume_number
+        LIMIT 1
+        '''
+
+        result = cache.client.query(query).result()
+        for row in result:
+            if hasattr(row, 'cover_image_data') and row.cover_image_data:
+                return row.cover_image_data
+
+        return None
+    except Exception as e:
+        if st.session_state.get('debug_mode', False):
+            st.warning(f"BigQuery any volume cover lookup failed: {e}")
+        return None
+
+
 def generate_marc_filename(books: list) -> str:
     """
     Generate a MARC export filename with date/time and sanitized series names.
@@ -394,10 +480,12 @@ def display_barcode_input():
         "Starting Barcode",
         value="",
         placeholder="e.g., T000001",
-        key="barcode_input"
-    )
+        key="barcode_input")
 
     if st.button("Confirm Starting Barcode"):
+        # Sanitize input by removing leading/trailing spaces
+        barcode_input = barcode_input.strip()
+
         if not barcode_input:
             st.error("Please enter a barcode number")
             return
@@ -439,8 +527,7 @@ def display_barcode_confirmation():
     series_name = st.text_input(
         "Series Name",
         placeholder="e.g., Naruto, One Piece, Attack on Titan",
-        key="first_series_input"
-    )
+        key="first_series_input")
 
     if st.button("Confirm Series Name"):
         if not series_name:
@@ -546,6 +633,105 @@ def get_series_info_from_bigquery(series_name: str):
 
     except Exception as e:
         print(f"❌ BigQuery cache query failed: {e}")
+    return None
+
+
+def get_cover_image_from_bigquery(series_name: str):
+    """Get compressed cover image from BigQuery cache"""
+    try:
+        from bigquery_cache import BigQueryCache
+        cache = BigQueryCache()
+
+        # Query for cover image data
+        query = f'''SELECT cover_image_data FROM `static-webbing-461904-c4.manga_lookup_cache.cover_images` WHERE LOWER(series_name) = LOWER("{series_name}")'''
+
+        print(f"🔍 BigQuery cover query: {query}")
+        result = cache.client.query(query).result()
+
+        row_count = 0
+        for row in result:
+            row_count += 1
+            if hasattr(row, 'cover_image_data') and row.cover_image_data:
+                print(f"✅ Found BigQuery stored cover for: {series_name}")
+                # Convert base64 data to bytes
+                try:
+                    image_bytes = base64.b64decode(row.cover_image_data)
+                    return image_bytes
+                except Exception as e:
+                    print(f"❌ Failed to decode BigQuery cover image: {e}")
+                    return None
+
+        if row_count == 0:
+            print(f"❌ No BigQuery stored cover found for: {series_name}")
+
+    except Exception as e:
+        print(f"❌ BigQuery cover cache query failed: {e}")
+    return None
+
+
+def get_volume_cover_from_bigquery(series_name: str, volume_number: int):
+    """Get compressed volume cover image from BigQuery cache"""
+    try:
+        from bigquery_cache import BigQueryCache
+        cache = BigQueryCache()
+
+        # Query for volume cover image data
+        query = f'''SELECT cover_image_data FROM `static-webbing-461904-c4.manga_lookup_cache.volume_covers` WHERE LOWER(series_name) = LOWER("{series_name}") AND volume_number = {volume_number}'''
+
+        print(f"🔍 BigQuery volume cover query: {query}")
+        result = cache.client.query(query).result()
+
+        row_count = 0
+        for row in result:
+            row_count += 1
+            if hasattr(row, 'cover_image_data') and row.cover_image_data:
+                print(f"✅ Found BigQuery stored volume cover for: {series_name} Vol {volume_number}")
+                # Convert base64 data to bytes
+                try:
+                    image_bytes = base64.b64decode(row.cover_image_data)
+                    return image_bytes
+                except Exception as e:
+                    print(f"❌ Failed to decode BigQuery volume cover image: {e}")
+                    return None
+
+        if row_count == 0:
+            print(f"❌ No BigQuery stored volume cover found for: {series_name} Vol {volume_number}")
+
+    except Exception as e:
+        print(f"❌ BigQuery volume cover cache query failed: {e}")
+    return None
+
+
+def get_any_volume_cover_from_bigquery(series_name: str):
+    """Get any available volume cover image from BigQuery cache for a series"""
+    try:
+        from bigquery_cache import BigQueryCache
+        cache = BigQueryCache()
+
+        # Query for any volume cover image data (prioritize volume 1, then any)
+        query = f'''SELECT cover_image_data, volume_number FROM `static-webbing-461904-c4.manga_lookup_cache.volume_covers` WHERE LOWER(series_name) = LOWER("{series_name}") ORDER BY volume_number LIMIT 1'''
+
+        print(f"🔍 BigQuery any volume cover query: {query}")
+        result = cache.client.query(query).result()
+
+        row_count = 0
+        for row in result:
+            row_count += 1
+            if hasattr(row, 'cover_image_data') and row.cover_image_data:
+                print(f"✅ Found BigQuery stored volume cover for: {series_name} Vol {row.volume_number}")
+                # Convert base64 data to bytes
+                try:
+                    image_bytes = base64.b64decode(row.cover_image_data)
+                    return image_bytes
+                except Exception as e:
+                    print(f"❌ Failed to decode BigQuery volume cover image: {e}")
+                    return None
+
+        if row_count == 0:
+            print(f"❌ No BigQuery stored volume covers found for: {series_name}")
+
+    except Exception as e:
+        print(f"❌ BigQuery any volume cover cache query failed: {e}")
     return None
 
 
@@ -831,8 +1017,7 @@ def display_series_input():
     series_name = st.text_input(
         "Series Name",
         placeholder="e.g., Naruto, One Piece, Attack on Titan",
-        key=f"series_input_{st.session_state.current_series_index}"
-    )
+        key=f"series_input_{st.session_state.current_series_index}")
 
     if st.button("Confirm Series Name"):
         if not series_name:
@@ -880,10 +1065,25 @@ def display_series_search():
                 col1, col2 = st.columns([1, 3])
 
                 with col1:
-                    if result["cover_url"] and is_cover_url_accessible(result["cover_url"]):
-                        st.image(result["cover_url"], width=100)
+                    # Smart Cover Display for Series Cards:
+                    # BigQuery series cover → BigQuery volume cover (1st volume if available, any volume if they are available) → Hotlinked URL
+
+                    # Try BigQuery series cover first
+                    series_cover_bytes = get_series_cover_from_bigquery(result["name"])
+                    if series_cover_bytes:
+                        st.image(series_cover_bytes, width=100, caption="Series Cover")
+                    # Fallback to volume cover (try volume 1 first, then any volume)
                     else:
-                        st.write("No cover available")
+                        volume_cover_bytes = get_volume_cover_from_bigquery(result["name"], 1)
+                        if not volume_cover_bytes:
+                            volume_cover_bytes = get_any_volume_cover_from_bigquery(result["name"])
+                        if volume_cover_bytes:
+                            st.image(volume_cover_bytes, width=100, caption="Volume Cover")
+                        # Fallback to hotlinked URL
+                        elif result["cover_url"] and is_cover_url_accessible(result["cover_url"]):
+                            st.image(result["cover_url"], width=100, caption="Hotlinked")
+                        else:
+                            st.write("No cover available")
 
                 with col2:
                     st.write(f"**{result['name']}**")
@@ -912,6 +1112,9 @@ def display_series_search():
                     
                     if additional_info.get("spin_offs"):
                         st.write(f"**Spinoffs/Alternate Editions:** {', '.join(additional_info['spin_offs'])}")
+
+                    if additional_info.get("adaptations"):
+                        st.write(f"**Adaptations:** {', '.join(additional_info['adaptations'])}")
 
                     if result.get("volumes_per_book"):
                         st.write(f"**Volumes per Book:** {result['volumes_per_book']}")
@@ -947,8 +1150,7 @@ def display_volume_input():
         "Volume Range",
         value="",
         placeholder="e.g., 1-10, 1,3,5,7, 1-5,8,10",
-        key=f"volume_range_{st.session_state.current_series_index}"
-    )
+        key=f"volume_range_{st.session_state.current_series_index}")
 
     if st.button("Continue"):
         if not volume_range:
@@ -1219,7 +1421,6 @@ def display_processing():
                     # Update progress
                     st.session_state.processing_state["progress"] += 1
                     progress_bar.progress(st.session_state.processing_state["progress"] / total)
-                    time.sleep(0.1) # Small delay to allow UI to update
                     st.rerun()
                 
                 processed_count += 1
@@ -1230,7 +1431,7 @@ def display_processing():
 
 
 def display_results():
-    """Step 7: Results display"""
+    """Step 7: Results display - Optimized for performance"""
     st.header("Processing Complete!")
 
     # Results table with series headers and detailed information
@@ -1263,58 +1464,67 @@ def display_results():
             with col4:
                 st.write(f"**Total Volumes:** {len(books)}")
 
-        # Volume details table
+        # Volume details table - optimized for performance
         st.subheader("Volume Details")
 
-        # Table header
-        col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 1, 1, 1, 2, 2])
-        col1.write("**Cover**")
-        col2.write("**Title**")
-        col3.write("**Vol**")
-        col4.write("**Barcode**")
-        col5.write("**MSRP**")
-        col6.write("**Physical Desc**")
-        col7.write("**Summary**")
+        # Pre-fetch all cover images for this series to avoid multiple BigQuery calls
+        cover_cache = {}
+        try:
+            from bigquery_cache import BigQueryCache
+            cache = BigQueryCache()
 
-        # Volume rows
+            # Batch query for all volume covers in this series
+            volume_numbers = [str(book.volume_number) for book in books]
+            if volume_numbers:
+                query = f'''
+                SELECT volume_number, cover_image_data
+                FROM `static-webbing-461904-c4.manga_lookup_cache.volume_covers`
+                WHERE LOWER(series_name) = LOWER("{series_name}")
+                AND volume_number IN ({','.join(volume_numbers)})
+                '''
+
+                result = cache.client.query(query).result()
+                for row in result:
+                    if hasattr(row, 'cover_image_data') and row.cover_image_data:
+                        try:
+                            image_bytes = base64.b64decode(row.cover_image_data)
+                            cover_cache[row.volume_number] = image_bytes
+                        except Exception:
+                            pass
+        except Exception:
+            # If batch query fails, fall back to individual queries
+            pass
+
+        # Create optimized table using Streamlit's native table for better performance
+        table_data = []
         for book in books:
-            col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 1, 1, 1, 2, 2])
+            # Get cover from cache or fallback with error handling
+            cover_display = "📚"
+            try:
+                if book.volume_number in cover_cache:
+                    cover_display = f"![Cover](data:image/jpeg;base64,{base64.b64encode(cover_cache[book.volume_number]).decode()})"
+                elif hasattr(book, 'cover_image_url') and book.cover_image_url:
+                    # Test if the cover URL is accessible
+                    if is_cover_url_accessible(book.cover_image_url):
+                        cover_display = f"![Cover]({book.cover_image_url})"
+            except Exception:
+                # If any error occurs, fall back to default icon
+                cover_display = "📚"
 
-            # Cover image
-            with col1:
-                if hasattr(book, 'cover_image_url') and book.cover_image_url:
-                    st.image(book.cover_image_url, width=50)
-                else:
-                    st.write("📚")
+            table_data.append({
+                "Cover": cover_display,
+                "Title": book.book_title or f"{series_name} Vol. {book.volume_number}",
+                "Vol": book.volume_number,
+                "Barcode": book.barcode,
+                "ISBN": book.isbn_13 or "N/A",
+                "Publisher": book.publisher_name or "N/A",
+                "MSRP": f"${float(book.msrp_cost):.2f}" if book.msrp_cost else "N/A",
+                "Physical Desc": book.physical_description or "N/A",
+                "Summary": (book.description or "No description")[:100] + ("..." if len(book.description or "") > 100 else "")
+            })
 
-            # Title
-            with col2:
-                st.write(book.book_title or f"{series_name} Vol. {book.volume_number}")
-
-            # Volume number
-            with col3:
-                st.write(str(book.volume_number))
-
-            # Barcode
-            with col4:
-                st.write(book.barcode)
-
-            # MSRP
-            with col5:
-                st.write(f"${float(book.msrp_cost):.2f}" if book.msrp_cost else "N/A")
-
-            # Physical description
-            with col6:
-                st.write(book.physical_description or "N/A")
-
-            # Summary description (truncated)
-            with col7:
-                desc = book.description or "No description"
-                if len(desc) > 100:
-                    st.write(f"{desc[:100]}...")
-                    st.caption("Hover for full description")
-                else:
-                    st.write(desc)
+        # Display as a single table for better performance with proper column widths
+        st.dataframe(table_data, use_container_width=True)
 
         st.divider()
 
@@ -1362,6 +1572,14 @@ def display_results():
             from label_generator import generate_pdf_labels
             import pandas as pd
 
+            # Prompt for library identifier with default 'B'
+            library_id = st.text_input(
+                "Library Identifier",
+                value="B",
+                max_chars=1,
+                help="Enter a 1-character library identifier (e.g., B for main library)"
+            )
+
             # Prepare data for label generation in the format expected by generate_pdf_labels
             label_data = []
             for book in st.session_state.all_books:
@@ -1380,7 +1598,7 @@ def display_results():
             if label_data:
                 # Convert to DataFrame as expected by generate_pdf_labels
                 df = pd.DataFrame(label_data)
-                pdf_data = generate_pdf_labels(df, library_name="Manga Collection")
+                pdf_data = generate_pdf_labels(df, library_name="Manga Collection", library_id=library_id)
                 st.download_button(
                     "Print Labels",
                     data=pdf_data,
@@ -1411,25 +1629,27 @@ def display_queued_series_summary():
         st.markdown("""
         <style>
         .queued-series-summary {
-            background-color: #f0f2f6;
+            background-color: #374151;
             padding: 10px 15px;
             border-radius: 8px;
-            border: 1px solid #e6e6e6;
+            border: 1px solid #4b5563;
             margin-bottom: 20px;
             font-size: 14px;
+            color: white;
         }
         .queued-series-summary h4 {
             margin: 0 0 8px 0;
-            color: #1f2937;
+            color: cyan;
         }
         .series-item {
             display: inline-block;
-            background: white;
+            background: #1f2937;
             padding: 4px 8px;
             margin: 2px 4px 2px 0;
             border-radius: 4px;
-            border: 1px solid #d1d5db;
+            border: 1px solid #4b5563;
             font-size: 12px;
+            color: white;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -1453,17 +1673,169 @@ def display_queued_series_summary():
 def main():
     """Main application function"""
     st.set_page_config(
-        page_title="Manga Lookup Tool",
+        page_title="Atriuum Manga Importer",
         page_icon="📚",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
+    # Hide Streamlit menu and footer, and add background styling
+    hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    /* Keep header visible for sidebar show button */
+    /* header {visibility: hidden;} */
+
+    /* Sidebar styling - black background */
+    section[data-testid="stSidebar"] > div {
+        background-color: #000000 !important;
+    }
+
+    /* Background styling */
+    .stApp {
+        background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
+                    url('app/static/background.jpg');
+        background-size: cover;
+        background-attachment: fixed;
+    }
+
+    /* Custom header styling */
+    .main-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .logo {
+        width: 320px;
+        height: 80px;
+        border-radius: 10px;
+        object-fit: cover;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .title-container {
+        flex: 1;
+    }
+
+    /* Card styling */
+    .stContainer {
+        background-color: rgba(255,255,255,0.95);
+        border-radius: 10px;
+        padding: 20px;
+        margin: 10px 0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    </style>
+    """
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
     # Initialize session state
     initialize_session_state()
 
-    # Main title
-    st.title("📚 Manga Lookup Tool")
+    # Sidebar with logo and help card
+    with st.sidebar:
+        # Logo in sidebar
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="app/static/logo.jpg" style="width: 280px; height: 70px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="AET Logo">
+        </div>
+        """, unsafe_allow_html=True)
+
+        # App title in sidebar
+        st.markdown("""
+        <h2 style="text-align: center; color: cyan; margin-bottom: 5px;">📚 Atriuum Manga Importer</h2>
+        <p style="text-align: center; color: #6b7280; font-size: 14px; margin-bottom: 20px;">Professional Library Cataloging Tool</p>
+        """, unsafe_allow_html=True)
+
+        # About card in sidebar
+        with st.expander("ℹ️ About This Project", expanded=True):
+            st.markdown("""
+            This Manga Collection Importer is a professional library cataloging tool designed to streamline the process of importing manga collections into Atriuum library management systems.
+
+            The application automatically generates comprehensive MARC records with accurate metadata, sequential barcodes, and optimized cover images. It leverages AI-powered metadata lookup, BigQuery caching for performance, and batch processing to handle large collections efficiently.
+
+            Built for library professionals, this tool reduces cataloging time while maintaining high data quality standards.
+            """)
+
+        # Help card in sidebar
+        with st.expander("📖 How to Use This App", expanded=False):
+            st.markdown("""
+            ### Step-by-Step Guide
+
+            #### 1. **Starting Barcode**
+            - Enter your starting barcode number (e.g., `T000001`, `MANGA001`)
+            - Format: Any combination of letters and numbers ending with a number
+            - The app will generate sequential barcodes for your volumes
+
+            #### 2. **Series Selection**
+            - Enter the manga series name
+            - The app searches multiple sources (BigQuery cache, DeepSeek AI, Google Books)
+            - Select the correct series from search results
+            - View cached cover images or hotlinked covers
+
+            #### 3. **Volume Range**
+            - Enter volume numbers using:
+              - **Ranges**: `1-10` (volumes 1 through 10)
+              - **Individual volumes**: `1,3,5,7`
+              - **Mixed**: `1-5,8,10`
+              - **Omnibus**: `17-18-19` (3 volumes in 1 book)
+
+            #### 4. **Processing**
+            - The app fetches metadata for each volume
+            - Uses cached data when available for speed
+            - Downloads and compresses cover images
+            - Generates barcodes automatically
+
+            #### 5. **Export & Import into Atriuum**
+
+            **MARC File Import:**
+            1. **Download MARC File**: Click "Download MARC File" button
+            2. **File Format**: `.mrc` file with proper MARC21 encoding
+            3. **Import into Atriuum**:
+               - Go to **Cataloging** → **Import/Export** → **MARC Import**
+               - Select the downloaded `.mrc` file
+               - Choose appropriate import profile for manga
+               - Map fields as needed (usually works with default settings)
+               - Run the import
+
+            **Label Printing:**
+            1. **Download Labels**: Click "Print Labels" button
+            2. **Print Settings**: Use standard label paper (Avery 5160/5161)
+            3. **Apply Labels**: Place on spine or cover of each volume
+
+            #### 6. **Cover Image Storage**
+            - **BigQuery Cache**: Compressed thumbnails (20-30KB) stored for fast loading
+            - **Fallback Logic**: Uses hotlinked URLs when cached images unavailable
+            - **Manual Updates**: Missing covers can be manually added using the generated list
+
+            #### 7. **Troubleshooting**
+            - **Missing Covers**: Check the generated missing covers list for manual updates
+            - **Barcode Issues**: Ensure barcode format follows your library's system
+            - **Import Errors**: Verify MARC file format and Atriuum import settings
+
+            #### 8. **Batch Processing**
+            - Add multiple series in one session
+            - Each series gets its own barcode range
+            - Export all series in a single MARC file
+
+            ### Technical Details
+            - **Cover Compression**: Images compressed to ~50KB for BigQuery storage
+            - **Metadata Sources**: BigQuery cache, DeepSeek AI, Google Books API
+            - **Export Format**: MARC21 with Atriuum-compatible descriptive cataloging
+            - **Label Format**: PDF with barcodes, titles, authors, and volume numbers
+
+            Need help? Check the missing covers list for series that need manual cover image updates.
+            """)
+
+    # Main content area - simplified header
+    st.markdown("""
+    <h1 style="color: cyan; margin-bottom: 10px;">📚 Manga Collection Importer</h1>
+    <p style="color: #6b7280; font-size: 16px; margin-bottom: 20px;">Import manga collections with automatic metadata lookup and MARC record generation</p>
+    """, unsafe_allow_html=True)
+
     st.markdown("---")
 
     # Display queued series summary (sticky top bar)

@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-11-02T15:45:00Z",
+  "summary": "Cache-busting CSS deployed to fix sidebar visibility in regular browser tabs",
+  "problem_solved": {
+    "issue": "Sidebar was visible in incognito but hidden in regular browser tabs",
+    "root_cause": "Browser caching old CSS that was hiding the sidebar",
+    "solution": "Added cache-busting version parameter using timestamp",
+    "implementation": "CSS now includes `data-version` attribute with current timestamp"
+  },
+  "technical_details": {
+    "cache_busting_method": "Dynamic version parameter using `int(time.time())`",
+    "css_injection": "f-string template with version: `<style data-version=\"{timestamp}\">`",
+    "effect": "Forces browsers to treat CSS as new content on each page load",
+    "deployment": "Updated app_new_workflow.py and restarted Streamlit service"
+  },
+  "current_status": {
+    "streamlit_app": {
+      "status": "✅ ACTIVE",
+      "instance": "ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501",
+      "accessibility": "HTTP 200 (working)",
+      "cache_busting": "Enabled with timestamp versioning"
+    }
+  },
+  "expected_behavior": {
+    "regular_browser_tabs": "Sidebar should now be visible after refresh",
+    "incognito_mode": "Sidebar should continue to work as before",
+    "css_features": [
+      "Black sidebar background",
+      "No hide/close buttons",
+      "About card expanded by default",
+      "Help card below About card"
+    ]
+  },
+  "testing_instructions": {
+    "regular_browser": [
+      "Refresh the page in your regular browser tab",
+      "Verify sidebar appears on the left side",
+      "Check for black background and About card",
+      "Confirm no hide buttons are visible"
+    ],
+    "if_still_issues": [
+      "Hard refresh: Ctrl+F5 (Windows/Linux) or Cmd+Shift+R (Mac)",
+      "Clear browser cache manually",
+      "Wait 1-2 minutes for CDN cache to expire (if applicable)"
+    ]
+  },
+  "access_url": "http://ec2-52-15-93-20.us-east-2.compute.amazonaws.com:8501",
+  "next_steps": {
+    "immediate": [
+      "Test sidebar visibility in regular browser tabs",
+      "Verify all sidebar features are working",
+      "Confirm cache-busting is effective"
+    ],
+    "monitoring": [
+      "Monitor for any CSS loading issues",
+      "Check if version parameter causes any performance impact"
+    ]
+  }
+}

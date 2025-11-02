@@ -1,0 +1,89 @@
+{
+  "timestamp": "2025-11-02T07:30:00Z",
+  "summary": "Google Books API experiencing 429 errors despite conservative rate limiting - need to investigate API key usage",
+  "current_issues": {
+    "rate_limiting": {
+      "status": "❌ PROBLEMATIC",
+      "issue": "429 Client Error: Too Many Requests despite conservative settings",
+      "attempted_settings": [
+        "9 req/sec (90% of limit) - Failed",
+        "5 req/sec (50% of limit) - Failed",
+        "3 workers - Failed"
+      ],
+      "possible_causes": [
+        "API key shared across multiple applications",
+        "Quota limits exceeded for the day",
+        "IP-based rate limiting",
+        "Project-wide quota limits"
+      ]
+    },
+    "storage_schema": {
+      "status": "✅ RESOLVED",
+      "issue": "BigQuery schema mismatch",
+      "solution": "Identified correct schema and implemented base64 encoding for BYTES field",
+      "actual_schema": [
+        "series_name: STRING",
+        "volume_number: INTEGER",
+        "cover_image_data: BYTES",
+        "original_url: STRING",
+        "content_type: STRING",
+        "file_size: INTEGER",
+        "downloaded_at: TIMESTAMP",
+        "download_status: STRING",
+        "source_domain: STRING",
+        "md5_hash: STRING"
+      ]
+    }
+  },
+  "api_analysis": {
+    "google_books_api": {
+      "status": "✅ Functional but rate limited",
+      "search_success": "Working correctly when not rate limited",
+      "estimated_success_rate": "~80% (covers found)",
+      "current_failure_rate": "100% due to rate limiting"
+    },
+    "key_usage": {
+      "api_key": "GEMINI_API_KEY from EC2 environment",
+      "key_format": "AIzaSyAwhv...5-v8",
+      "suspected_issue": "Shared quota or project limits"
+    }
+  },
+  "next_steps": {
+    "immediate": [
+      "Test with extremely conservative rate limiting (1-2 req/sec)",
+      "Implement retry logic with exponential backoff",
+      "Consider using multiple API keys if available",
+      "Test with single worker to isolate rate limiting"
+    ],
+    "investigation": [
+      "Check Google Cloud Console for API usage and quotas",
+      "Verify if API key is used by other applications",
+      "Test with different API key if available"
+    ]
+  },
+  "recommendations": {
+    "rate_limiting_strategy": [
+      "Use 1-2 req/sec maximum",
+      "Implement exponential backoff for 429 errors",
+      "Consider processing in smaller batches",
+      "Add delays between batches"
+    ],
+    "alternative_approaches": [
+      "Use alternative image sources for failed volumes",
+      "Implement fallback to original hotlinked covers",
+      "Cache successful searches and retry failed ones later"
+    ]
+  },
+  "file_descriptions": {
+    "google_books_corrected.py": "Script with correct BigQuery schema but may have rate limiting issues",
+    "google_books_conservative.py": "Script with conservative rate limiting (5 req/sec)",
+    "analyze_failure_rate.py": "Analysis script for failure rates",
+    "analyze_results.py": "Results analysis script"
+  },
+  "resume_instructions": {
+    "step_1": "Test with extremely conservative settings (1-2 req/sec)",
+    "step_2": "Implement retry logic for 429 errors",
+    "step_3": "Process volumes in smaller batches",
+    "step_4": "Verify storage works with successful searches"
+  }
+}
