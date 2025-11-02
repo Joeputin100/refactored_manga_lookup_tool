@@ -1692,10 +1692,12 @@ def main():
         background-color: #000000 !important;
     }
 
-    /* Background styling */
+    /* Background styling - multiple fallback paths for Streamlit Cloud */
     .stApp {
         background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
-                    url('app/static/background.jpg');
+                    url('./static/background.jpg'),
+                    url('app/static/background.jpg'),
+                    url('static/background.jpg');
         background-size: cover;
         background-attachment: fixed;
     }
@@ -1737,12 +1739,16 @@ def main():
 
     # Sidebar with logo and help card
     with st.sidebar:
-        # Logo in sidebar
-        st.markdown("""
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="app/static/logo.jpg" style="width: 280px; height: 70px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="AET Logo">
-        </div>
-        """, unsafe_allow_html=True)
+        # Logo in sidebar using st.image for better Streamlit Cloud compatibility
+        try:
+            st.image("static/logo.jpg", width=280, use_column_width=False)
+        except Exception:
+            # Fallback to HTML if st.image fails
+            st.markdown("""
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="app/static/logo.jpg" style="width: 280px; height: 70px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="AET Logo">
+            </div>
+            """, unsafe_allow_html=True)
 
         # App title in sidebar
         st.markdown("""
