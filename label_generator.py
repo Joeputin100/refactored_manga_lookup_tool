@@ -23,6 +23,8 @@ UNICODE_FONT_NAME = None
 font_paths = [
     "fonts/DejaVuSans.ttf",  # Local font for Streamlit Cloud
     "fonts/LiberationSans-Regular.ttf",  # Local font for Streamlit Cloud
+    "fonts/dejavu-fonts-ttf-2.37/ttf/DejaVuSans.ttf",  # Local font from extracted archive
+    "fonts/liberation-fonts-ttf-2.00.5/LiberationSans-Regular.ttf",  # Local font from extracted archive
     "/system/fonts/DroidSans.ttf",  # Android
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Linux
