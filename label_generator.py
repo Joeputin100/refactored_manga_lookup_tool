@@ -12,19 +12,23 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 import io
+import os
 
 # Unicode font support configuration
 # Try to register Unicode fonts, fall back to standard fonts if not available
 UNICODE_FONT_AVAILABLE = False
 UNICODE_FONT_NAME = None
 
+# Get the absolute path to the current directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
 # Try common font paths that might work on different systems
 # Prioritize local fonts for Streamlit Cloud compatibility
 font_paths = [
-    "fonts/DejaVuSans.ttf",  # Local font for Streamlit Cloud
-    "fonts/LiberationSans-Regular.ttf",  # Local font for Streamlit Cloud
-    "fonts/dejavu-fonts-ttf-2.37/ttf/DejaVuSans.ttf",  # Local font from extracted archive
-    "fonts/liberation-fonts-ttf-2.00.5/LiberationSans-Regular.ttf",  # Local font from extracted archive
+    os.path.join(current_dir, "fonts/DejaVuSans.ttf"),  # Local font for Streamlit Cloud
+    os.path.join(current_dir, "fonts/LiberationSans-Regular.ttf"),  # Local font for Streamlit Cloud
+    os.path.join(current_dir, "fonts/dejavu-fonts-ttf-2.37/ttf/DejaVuSans.ttf"),  # Local font from extracted archive
+    os.path.join(current_dir, "fonts/liberation-fonts-ttf-2.00.5/LiberationSans-Regular.ttf"),  # Local font from extracted archive
     "/system/fonts/DroidSans.ttf",  # Android
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Linux
@@ -32,19 +36,29 @@ font_paths = [
     "C:\\Windows\\Fonts\\arial.ttf"  # Windows
 ]
 
+print(f"🔍 FONT DEBUG: Current directory: {current_dir}")
+print(f"🔍 FONT DEBUG: Font paths to try: {font_paths}")
+
 for font_path in font_paths:
     try:
+        print(f"🔍 FONT DEBUG: Attempting to register font from: {font_path}")
+        print(f"🔍 FONT DEBUG: File exists: {os.path.exists(font_path)}")
+
         font_name = "UnicodeFont"
         pdfmetrics.registerFont(TTFont(font_name, font_path))
         UNICODE_FONT_AVAILABLE = True
         UNICODE_FONT_NAME = font_name
         print(f"✅ Registered Unicode font from: {font_path}")
         break
-    except Exception:
+    except Exception as e:
+        print(f"🔍 FONT DEBUG: Failed to register {font_path}: {e}")
         continue
 
 if not UNICODE_FONT_AVAILABLE:
     print("⚠️ No Unicode fonts found, will use standard fonts with ASCII fallback")
+else:
+    print(f"✅ Unicode font support: {UNICODE_FONT_AVAILABLE}")
+    print(f"✅ Unicode font name: {UNICODE_FONT_NAME}")
 
 
 def clean_text_for_pdf(text):
@@ -186,6 +200,9 @@ def format_authors(authors):
     return ", ".join(formatted_authors)
 
 def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
+    print(f"🔍 CREATE_LABEL DEBUG: library_id='{library_id}' (type: {type(library_id)})")
+    print(f"🔍 CREATE_LABEL DEBUG: library_id bytes: {library_id.encode('utf-8')}")
+
     title = clean_text_for_pdf(book_data.get("Title", ""))
     authors = book_data.get("Author", "")
     # Format authors to "Last, First"
@@ -350,20 +367,25 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
 
         # Handle library identifier with Unicode support
         b_text = library_id
+        print(f"🔍 LABEL_TYPE_3 DEBUG: Original library_id='{library_id}'")
+        print(f"🔍 LABEL_TYPE_3 DEBUG: UNICODE_FONT_AVAILABLE={UNICODE_FONT_AVAILABLE}")
+        print(f"🔍 LABEL_TYPE_3 DEBUG: UNICODE_FONT_NAME='{UNICODE_FONT_NAME}'")
 
         # Use Unicode font if available, otherwise check ASCII compatibility
         if UNICODE_FONT_AVAILABLE:
             # Use Unicode font for special characters
             font_name = UNICODE_FONT_NAME
+            print(f"✅ LABEL_TYPE_3: Using Unicode font '{font_name}' for library_id='{library_id}'")
         else:
             # Fallback: Check if the character is ASCII
             try:
                 b_text.encode('ascii')
                 # Character is ASCII, use standard font
                 font_name = "Helvetica-Bold"
+                print(f"✅ LABEL_TYPE_3: Using standard font '{font_name}' for ASCII library_id='{library_id}'")
             except UnicodeEncodeError:
                 # Character is non-ASCII, no Unicode font available
-                print(f"⚠️ Non-ASCII library identifier '{library_id}' detected, but no Unicode font available. Using fallback 'B'")
+                print(f"⚠️ LABEL_TYPE_3: Non-ASCII library identifier '{library_id}' detected, but no Unicode font available. Using fallback 'B'")
                 b_text = "B"
                 font_name = "Helvetica-Bold"
 
@@ -380,7 +402,11 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
         b_x = x + LABEL_WIDTH - b_text_width
         b_y = y + (LABEL_HEIGHT - b_font_size * 0.8) / 2 + (0.5 * GRID_SPACING)
 
+        print(f"🔍 LABEL_TYPE_3: Drawing library_id='{b_text}' with font='{font_name}', size={b_font_size}")
+        print(f"🔍 LABEL_TYPE_3: Position: x={b_x}, y={b_y}, width={b_text_width}")
+
         c.drawString(b_x, b_y, b_text)
+        print(f"✅ LABEL_TYPE_3: Successfully drew library_id='{b_text}' on label")
 
         c.setFont("Courier-Bold", 10)
         # Extract first 3 letters of author's last name
@@ -525,7 +551,11 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
 
 
 def generate_pdf_labels(df, library_name, library_id="B"):
-    print(f"🔍 Label Generator Debug: library_id='{library_id}'")
+    print(f"🔍 GENERATE_PDF_LABELS DEBUG: library_id='{library_id}' (type: {type(library_id)})")
+    print(f"🔍 GENERATE_PDF_LABELS DEBUG: library_id bytes: {library_id.encode('utf-8')}")
+    print(f"🔍 GENERATE_PDF_LABELS DEBUG: UNICODE_FONT_AVAILABLE={UNICODE_FONT_AVAILABLE}")
+    print(f"🔍 GENERATE_PDF_LABELS DEBUG: UNICODE_FONT_NAME='{UNICODE_FONT_NAME}'")
+
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
 
