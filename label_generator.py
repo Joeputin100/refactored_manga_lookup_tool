@@ -8,8 +8,38 @@ from reportlab.lib.utils import ImageReader
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 import io
+
+# Unicode font support configuration
+# Try to register Unicode fonts, fall back to standard fonts if not available
+UNICODE_FONT_AVAILABLE = False
+UNICODE_FONT_NAME = None
+
+# Try common font paths that might work on different systems
+font_paths = [
+    "/system/fonts/DroidSans.ttf",  # Android
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Linux
+    "/Library/Fonts/Arial.ttf",  # macOS
+    "C:\\Windows\\Fonts\\arial.ttf"  # Windows
+]
+
+for font_path in font_paths:
+    try:
+        font_name = "UnicodeFont"
+        pdfmetrics.registerFont(TTFont(font_name, font_path))
+        UNICODE_FONT_AVAILABLE = True
+        UNICODE_FONT_NAME = font_name
+        print(f"✅ Registered Unicode font from: {font_path}")
+        break
+    except Exception:
+        continue
+
+if not UNICODE_FONT_AVAILABLE:
+    print("⚠️ No Unicode fonts found, will use standard fonts with ASCII fallback")
 
 
 def clean_text_for_pdf(text):
@@ -313,28 +343,35 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
             - (line_height * 0.8)
         )
 
-        # Handle special characters that might not be supported by PDF fonts
+        # Handle library identifier with Unicode support
         b_text = library_id
 
-        # Check if the character is ASCII, otherwise use fallback
-        try:
-            b_text.encode('ascii')
-            # Character is ASCII, use as-is
-        except UnicodeEncodeError:
-            # Character is non-ASCII, use fallback
-            print(f"⚠️ Non-ASCII library identifier '{library_id}' detected, using fallback 'B'")
-            b_text = "B"
+        # Use Unicode font if available, otherwise check ASCII compatibility
+        if UNICODE_FONT_AVAILABLE:
+            # Use Unicode font for special characters
+            font_name = UNICODE_FONT_NAME
+        else:
+            # Fallback: Check if the character is ASCII
+            try:
+                b_text.encode('ascii')
+                # Character is ASCII, use standard font
+                font_name = "Helvetica-Bold"
+            except UnicodeEncodeError:
+                # Character is non-ASCII, no Unicode font available
+                print(f"⚠️ Non-ASCII library identifier '{library_id}' detected, but no Unicode font available. Using fallback 'B'")
+                b_text = "B"
+                font_name = "Helvetica-Bold"
 
         b_font_size = 100
         while (
-            c.stringWidth(b_text, "Helvetica-Bold", b_font_size) > LABEL_WIDTH
+            c.stringWidth(b_text, font_name, b_font_size) > LABEL_WIDTH
             and b_font_size > 10
         ):
             b_font_size -= 1
         b_font_size *= 0.9
 
-        c.setFont("Helvetica-Bold", b_font_size)
-        b_text_width = c.stringWidth(b_text, "Helvetica-Bold", b_font_size)
+        c.setFont(font_name, b_font_size)
+        b_text_width = c.stringWidth(b_text, font_name, b_font_size)
         b_x = x + LABEL_WIDTH - b_text_width
         b_y = y + (LABEL_HEIGHT - b_font_size * 0.8) / 2 + (0.5 * GRID_SPACING)
 
