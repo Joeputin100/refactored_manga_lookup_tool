@@ -13,6 +13,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 import io
 import os
+from PIL import Image, ImageDraw, ImageFont
+import base64
 
 # Unicode font support configuration
 # Try to register Unicode fonts, fall back to standard fonts if not available
@@ -59,6 +61,68 @@ if not UNICODE_FONT_AVAILABLE:
 else:
     print(f"✅ Unicode font support: {UNICODE_FONT_AVAILABLE}")
     print(f"✅ Unicode font name: {UNICODE_FONT_NAME}")
+
+
+def rasterize_unicode_character(character, font_size=200, image_size=256):
+    """
+    Rasterize a Unicode character as a PNG image to ensure consistent rendering.
+    Returns an ImageReader object for use with ReportLab.
+    """
+    print(f"🔍 RASTERIZE DEBUG: Rasterizing character '{character}'")
+
+    # Create a transparent image
+    image = Image.new('RGBA', (image_size, image_size), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(image)
+
+    # Try different font paths for Unicode support
+    font_paths = [
+        os.path.join(current_dir, "fonts/DejaVuSans.ttf"),
+        os.path.join(current_dir, "fonts/LiberationSans-Regular.ttf"),
+        "/system/fonts/DroidSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+
+    font = None
+    for font_path in font_paths:
+        try:
+            if os.path.exists(font_path):
+                font = ImageFont.truetype(font_path, font_size)
+                print(f"✅ RASTERIZE: Using font: {font_path}")
+                break
+        except Exception as e:
+            print(f"⚠️ RASTERIZE: Failed to load font {font_path}: {e}")
+            continue
+
+    if font is None:
+        # Fallback to default font
+        print("⚠️ RASTERIZE: No Unicode font found, using default font")
+        font = ImageFont.load_default()
+
+    # Calculate text size and position
+    try:
+        bbox = draw.textbbox((0, 0), character, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+
+        # Center the character in the image
+        x = (image_size - text_width) // 2
+        y = (image_size - text_height) // 2 - bbox[1]
+
+        # Draw the character
+        draw.text((x, y), character, fill=(0, 0, 0, 255), font=font)
+        print(f"✅ RASTERIZE: Successfully rasterized '{character}' - size: {text_width}x{text_height}")
+
+    except Exception as e:
+        print(f"❌ RASTERIZE: Failed to rasterize '{character}': {e}")
+        # Create a fallback image with the character code
+        draw.text((10, 10), f"U+{ord(character[0]):04X}", fill=(0, 0, 0, 255))
+
+    # Convert to bytes
+    buffer = io.BytesIO()
+    image.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    return ImageReader(buffer)
 
 
 def clean_text_for_pdf(text):
@@ -366,47 +430,53 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
         )
 
         # Handle library identifier with Unicode support
-        b_text = library_id
         print(f"🔍 LABEL_TYPE_3 DEBUG: Original library_id='{library_id}'")
         print(f"🔍 LABEL_TYPE_3 DEBUG: UNICODE_FONT_AVAILABLE={UNICODE_FONT_AVAILABLE}")
         print(f"🔍 LABEL_TYPE_3 DEBUG: UNICODE_FONT_NAME='{UNICODE_FONT_NAME}'")
 
-        # Use Unicode font if available, otherwise check ASCII compatibility
-        if UNICODE_FONT_AVAILABLE:
-            # Use Unicode font for special characters
-            font_name = UNICODE_FONT_NAME
-            print(f"✅ LABEL_TYPE_3: Using Unicode font '{font_name}' for library_id='{library_id}'")
-        else:
-            # Fallback: Check if the character is ASCII
-            try:
-                b_text.encode('ascii')
-                # Character is ASCII, use standard font
-                font_name = "Helvetica-Bold"
-                print(f"✅ LABEL_TYPE_3: Using standard font '{font_name}' for ASCII library_id='{library_id}'")
-            except UnicodeEncodeError:
-                # Character is non-ASCII, no Unicode font available
-                print(f"⚠️ LABEL_TYPE_3: Non-ASCII library identifier '{library_id}' detected, but no Unicode font available. Using fallback 'B'")
-                b_text = "B"
-                font_name = "Helvetica-Bold"
+        # Check if character is ASCII or Unicode
+        try:
+            library_id.encode('ascii')
+            # ASCII character - use text rendering
+            print(f"✅ LABEL_TYPE_3: ASCII character '{library_id}' - using text rendering")
 
-        b_font_size = 100
-        while (
-            c.stringWidth(b_text, font_name, b_font_size) > LABEL_WIDTH
-            and b_font_size > 10
-        ):
-            b_font_size -= 1
-        b_font_size *= 0.9
+            b_font_size = 100
+            while (
+                c.stringWidth(library_id, "Helvetica-Bold", b_font_size) > LABEL_WIDTH
+                and b_font_size > 10
+            ):
+                b_font_size -= 1
+            b_font_size *= 0.9
 
-        c.setFont(font_name, b_font_size)
-        b_text_width = c.stringWidth(b_text, font_name, b_font_size)
-        b_x = x + LABEL_WIDTH - b_text_width
-        b_y = y + (LABEL_HEIGHT - b_font_size * 0.8) / 2 + (0.5 * GRID_SPACING)
+            c.setFont("Helvetica-Bold", b_font_size)
+            b_text_width = c.stringWidth(library_id, "Helvetica-Bold", b_font_size)
+            b_x = x + LABEL_WIDTH - b_text_width
+            b_y = y + (LABEL_HEIGHT - b_font_size * 0.8) / 2 + (0.5 * GRID_SPACING)
 
-        print(f"🔍 LABEL_TYPE_3: Drawing library_id='{b_text}' with font='{font_name}', size={b_font_size}")
-        print(f"🔍 LABEL_TYPE_3: Position: x={b_x}, y={b_y}, width={b_text_width}")
+            print(f"🔍 LABEL_TYPE_3: Drawing ASCII library_id='{library_id}' with font='Helvetica-Bold', size={b_font_size}")
+            print(f"🔍 LABEL_TYPE_3: Position: x={b_x}, y={b_y}, width={b_text_width}")
 
-        c.drawString(b_x, b_y, b_text)
-        print(f"✅ LABEL_TYPE_3: Successfully drew library_id='{b_text}' on label")
+            c.drawString(b_x, b_y, library_id)
+            print(f"✅ LABEL_TYPE_3: Successfully drew ASCII library_id='{library_id}' on label")
+
+        except UnicodeEncodeError:
+            # Unicode character - use rasterized image
+            print(f"✅ LABEL_TYPE_3: Unicode character '{library_id}' detected - using rasterized image")
+
+            # Rasterize the Unicode character
+            character_image = rasterize_unicode_character(library_id)
+
+            # Calculate image size and position
+            image_size = LABEL_HEIGHT * 0.8  # 80% of label height
+            b_x = x + LABEL_WIDTH - image_size
+            b_y = y + (LABEL_HEIGHT - image_size) / 2
+
+            print(f"🔍 LABEL_TYPE_3: Drawing Unicode library_id='{library_id}' as image")
+            print(f"🔍 LABEL_TYPE_3: Position: x={b_x}, y={b_y}, size={image_size}")
+
+            # Draw the rasterized image
+            c.drawImage(character_image, b_x, b_y, width=image_size, height=image_size)
+            print(f"✅ LABEL_TYPE_3: Successfully drew Unicode library_id='{library_id}' as image")
 
         c.setFont("Courier-Bold", 10)
         # Extract first 3 letters of author's last name
