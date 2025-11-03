@@ -25,15 +25,23 @@ class BigQueryCache:
     """BigQuery-based cache for manga series and volume information"""
 
     def __init__(self):
+        # Initialize client to None to prevent attribute errors
+        self.client = None
+        self.enabled = False
+
         if not BIGQUERY_AVAILABLE:
-            self.enabled = False
+            print("❌ BigQuery not available - imports failed")
             return
 
         try:
             # Get credentials from Streamlit secrets or environment
             import streamlit as st
+            print("🔍 Checking for Streamlit secrets...")
             if hasattr(st, 'secrets') and 'vertex_ai' in st.secrets:
                 vertex_secrets = st.secrets["vertex_ai"]
+                print(f"✅ Found vertex_ai secrets with keys: {list(vertex_secrets.keys())}")
+
+                # Create credentials
                 self.credentials = service_account.Credentials.from_service_account_info({
                     "type": vertex_secrets.get("type"),
                     "project_id": vertex_secrets.get("project_id"),
@@ -46,14 +54,19 @@ class BigQueryCache:
                     "auth_provider_x509_cert_url": vertex_secrets.get("auth_provider_x509_cert_url"),
                     "client_x509_cert_url": vertex_secrets.get("client_x509_cert_url")
                 })
+                print(f"✅ Credentials created for: {self.credentials.service_account_email}")
             else:
                 # Fallback to environment variables
+                print("⚠️ No vertex_ai secrets found, using None credentials")
                 self.credentials = None
 
+            # Create BigQuery client
+            print("🔍 Creating BigQuery client...")
             self.client = bigquery.Client(
                 project="static-webbing-461904-c4",
                 credentials=self.credentials
             )
+            print("✅ BigQuery client created successfully")
 
             # Test if we have basic permissions
             try:
