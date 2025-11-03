@@ -1071,17 +1071,32 @@ def display_series_search():
                     # Try BigQuery series cover first
                     series_cover_bytes = get_series_cover_from_bigquery(result["name"])
                     if series_cover_bytes:
-                        st.image(series_cover_bytes, width=100, caption="Series Cover")
+                        try:
+                            st.image(series_cover_bytes, width=100, caption="Series Cover")
+                        except Exception as e:
+                            if st.session_state.get('debug_mode', False):
+                                st.warning(f"Failed to display series cover: {e}")
+                            st.write("Series cover unavailable")
                     # Fallback to volume cover (try volume 1 first, then any volume)
                     else:
                         volume_cover_bytes = get_volume_cover_from_bigquery(result["name"], 1)
                         if not volume_cover_bytes:
                             volume_cover_bytes = get_any_volume_cover_from_bigquery(result["name"])
                         if volume_cover_bytes:
-                            st.image(volume_cover_bytes, width=100, caption="Volume Cover")
+                            try:
+                                st.image(volume_cover_bytes, width=100, caption="Volume Cover")
+                            except Exception as e:
+                                if st.session_state.get('debug_mode', False):
+                                    st.warning(f"Failed to display volume cover: {e}")
+                                st.write("Volume cover unavailable")
                         # Fallback to hotlinked URL
                         elif result["cover_url"] and is_cover_url_accessible(result["cover_url"]):
-                            st.image(result["cover_url"], width=100, caption="Hotlinked")
+                            try:
+                                st.image(result["cover_url"], width=100, caption="Hotlinked")
+                            except Exception as e:
+                                if st.session_state.get('debug_mode', False):
+                                    st.warning(f"Failed to display hotlinked cover: {e}")
+                                st.write("Hotlinked cover unavailable")
                         else:
                             st.write("No cover available")
 
