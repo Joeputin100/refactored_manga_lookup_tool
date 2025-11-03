@@ -1495,24 +1495,25 @@ def display_results():
             # If batch query fails, fall back to individual queries
             pass
 
-        # Create optimized table using Streamlit's native table for better performance
+        # Create optimized table using Streamlit's dataframe with column_config for images
         table_data = []
         for book in books:
-            # Get cover from cache or fallback with error handling
-            cover_display = "📚"
+            # Get cover URL from cache or fallback
+            cover_url = None
             try:
                 if book.volume_number in cover_cache:
-                    cover_display = f"![Cover](data:image/jpeg;base64,{base64.b64encode(cover_cache[book.volume_number]).decode()})"
+                    # Convert base64 to data URL for ImageColumn
+                    cover_url = f"data:image/jpeg;base64,{base64.b64encode(cover_cache[book.volume_number]).decode()}"
                 elif hasattr(book, 'cover_image_url') and book.cover_image_url:
                     # Test if the cover URL is accessible
                     if is_cover_url_accessible(book.cover_image_url):
-                        cover_display = f"![Cover]({book.cover_image_url})"
+                        cover_url = book.cover_image_url
             except Exception:
-                # If any error occurs, fall back to default icon
-                cover_display = "📚"
+                # If any error occurs, fall back to None
+                cover_url = None
 
             table_data.append({
-                "Cover": cover_display,
+                "Cover": cover_url,
                 "Title": book.book_title or f"{series_name} Vol. {book.volume_number}",
                 "Vol": book.volume_number,
                 "Barcode": book.barcode,
@@ -1523,8 +1524,64 @@ def display_results():
                 "Summary": (book.description or "No description")[:100] + ("..." if len(book.description or "") > 100 else "")
             })
 
-        # Display as a single table for better performance with proper column widths
-        st.dataframe(table_data, use_container_width=True)
+        # Display as a single dataframe with proper column configuration
+        import pandas as pd
+        from streamlit.column_config import ImageColumn, TextColumn, NumberColumn
+
+        df = pd.DataFrame(table_data)
+
+        st.dataframe(
+            df,
+            column_config={
+                "Cover": ImageColumn(
+                    "Cover",
+                    width="small",
+                    help="Volume cover image"
+                ),
+                "Title": TextColumn(
+                    "Title",
+                    width="large",
+                    help="Book title"
+                ),
+                "Vol": NumberColumn(
+                    "Vol",
+                    width="small",
+                    help="Volume number"
+                ),
+                "Barcode": TextColumn(
+                    "Barcode",
+                    width="medium",
+                    help="Library barcode"
+                ),
+                "ISBN": TextColumn(
+                    "ISBN",
+                    width="medium",
+                    help="ISBN-13"
+                ),
+                "Publisher": TextColumn(
+                    "Publisher",
+                    width="medium",
+                    help="Publisher name"
+                ),
+                "MSRP": TextColumn(
+                    "MSRP",
+                    width="small",
+                    help="Manufacturer's suggested retail price"
+                ),
+                "Physical Desc": TextColumn(
+                    "Physical Desc",
+                    width="medium",
+                    help="Physical description"
+                ),
+                "Summary": TextColumn(
+                    "Summary",
+                    width="large",
+                    help="Book description summary"
+                )
+            },
+            use_container_width=True,
+            hide_index=True
+        )
 
         st.divider()
 
@@ -1573,12 +1630,20 @@ def display_results():
             import pandas as pd
 
             # Prompt for library identifier with default 'B'
+            if 'library_id' not in st.session_state:
+                st.session_state.library_id = "B"
+
             library_id = st.text_input(
                 "Library Identifier",
-                value="B",
+                value=st.session_state.library_id,
                 max_chars=1,
-                help="Enter a 1-character library identifier (e.g., B for main library)"
+                help="Enter a 1-character library identifier (e.g., B for main library)",
+                key="library_id_input"
             )
+
+            # Update session state with user input
+            if library_id:
+                st.session_state.library_id = library_id
 
             # Prepare data for label generation in the format expected by generate_pdf_labels
             label_data = []
@@ -1598,7 +1663,7 @@ def display_results():
             if label_data:
                 # Convert to DataFrame as expected by generate_pdf_labels
                 df = pd.DataFrame(label_data)
-                pdf_data = generate_pdf_labels(df, library_name="Manga Collection", library_id=library_id)
+                pdf_data = generate_pdf_labels(df, library_name="Manga Collection", library_id=st.session_state.library_id)
                 st.download_button(
                     "Print Labels",
                     data=pdf_data,
