@@ -1535,51 +1535,42 @@ def display_results():
             column_config={
                 "Cover": ImageColumn(
                     "Cover",
-                    width="small",
                     help="Volume cover image"
                 ),
                 "Title": TextColumn(
                     "Title",
-                    width="large",
                     help="Book title"
                 ),
                 "Vol": NumberColumn(
                     "Vol",
-                    width="small",
                     help="Volume number"
                 ),
                 "Barcode": TextColumn(
                     "Barcode",
-                    width="medium",
                     help="Library barcode"
                 ),
                 "ISBN": TextColumn(
                     "ISBN",
-                    width="medium",
                     help="ISBN-13"
                 ),
                 "Publisher": TextColumn(
                     "Publisher",
-                    width="medium",
                     help="Publisher name"
                 ),
                 "MSRP": TextColumn(
                     "MSRP",
-                    width="small",
                     help="Manufacturer's suggested retail price"
                 ),
                 "Physical Desc": TextColumn(
                     "Physical Desc",
-                    width="medium",
                     help="Physical description"
                 ),
                 "Summary": TextColumn(
                     "Summary",
-                    width="large",
                     help="Book description summary"
                 )
             },
-            use_container_width=True,
+            use_container_width=False,
             hide_index=True
         )
 
@@ -1644,6 +1635,9 @@ def display_results():
             # Update session state with user input
             if library_id:
                 st.session_state.library_id = library_id
+
+            # Debug: Check what library_id is being used
+            print(f"🔍 Library ID Debug: user_input='{library_id}', session_state='{st.session_state.library_id}'")
 
             # Prepare data for label generation in the format expected by generate_pdf_labels
             label_data = []

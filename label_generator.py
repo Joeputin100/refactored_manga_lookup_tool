@@ -313,7 +313,18 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
             - (line_height * 0.8)
         )
 
+        # Handle special characters that might not be supported by PDF fonts
         b_text = library_id
+
+        # Check if the character is ASCII, otherwise use fallback
+        try:
+            b_text.encode('ascii')
+            # Character is ASCII, use as-is
+        except UnicodeEncodeError:
+            # Character is non-ASCII, use fallback
+            print(f"⚠️ Non-ASCII library identifier '{library_id}' detected, using fallback 'B'")
+            b_text = "B"
+
         b_font_size = 100
         while (
             c.stringWidth(b_text, "Helvetica-Bold", b_font_size) > LABEL_WIDTH
@@ -472,6 +483,7 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
 
 
 def generate_pdf_labels(df, library_name, library_id="B"):
+    print(f"🔍 Label Generator Debug: library_id='{library_id}'")
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
 
