@@ -19,7 +19,10 @@ UNICODE_FONT_AVAILABLE = False
 UNICODE_FONT_NAME = None
 
 # Try common font paths that might work on different systems
+# Prioritize local fonts for Streamlit Cloud compatibility
 font_paths = [
+    "fonts/DejaVuSans.ttf",  # Local font for Streamlit Cloud
+    "fonts/LiberationSans-Regular.ttf",  # Local font for Streamlit Cloud
     "/system/fonts/DroidSans.ttf",  # Android
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Linux
