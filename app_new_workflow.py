@@ -1642,14 +1642,18 @@ def display_results():
             library_id = st.text_input(
                 "Library Identifier",
                 value=st.session_state.library_id,
-                max_chars=1,
-                help="Enter a 1-character library identifier (e.g., B for main library)",
+                max_chars=2,  # Increased to allow for multi-byte Unicode characters
+                help="Enter a 1-character library identifier (e.g., B for main library, ♡ for heart, ☆ for star)",
                 key="library_id_input"
             )
 
             # Update session state with user input
             if library_id:
-                st.session_state.library_id = library_id
+                # Take only the first character to ensure single-character identifier
+                st.session_state.library_id = library_id[0] if library_id else "B"
+
+            # Show validated library identifier to user
+            st.info(f"📝 Library identifier will be: **'{st.session_state.library_id}'**")
 
             # Debug: Check what library_id is being used
             print(f"🔍 Library ID Debug: user_input='{library_id}', session_state='{st.session_state.library_id}'")
@@ -1768,12 +1772,36 @@ def main():
 
     /* Background styling - multiple fallback paths for Streamlit Cloud */
     .stApp {
-        background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
+        background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
                     url('./static/background.jpg'),
                     url('app/static/background.jpg'),
                     url('static/background.jpg');
         background-size: cover;
         background-attachment: fixed;
+    }
+
+    /* Edge browser text color fix - ensure all text is white on dark background */
+    .stApp, .stApp * {
+        color: white !important;
+    }
+
+    /* Override for card content - should have dark text on white background */
+    .stContainer, .stContainer * {
+        color: #333333 !important;
+    }
+
+    /* Specific Streamlit component fixes for Edge */
+    .stMarkdown, .stText, .stButton, .stSelectbox, .stTextInput {
+        color: white !important;
+    }
+
+    /* Card content should have dark text */
+    .stContainer .stMarkdown,
+    .stContainer .stText,
+    .stContainer .stButton,
+    .stContainer .stSelectbox,
+    .stContainer .stTextInput {
+        color: #333333 !important;
     }
 
     /* Custom header styling */
