@@ -110,6 +110,13 @@ def rasterize_unicode_character(character, font_size=200, image_size=256):
         print(f"🔍 RASTERIZE: Character bbox: {bbox}")
         print(f"🔍 RASTERIZE: Calculated size: {text_width}x{text_height}")
 
+        # Fix for emoji fonts that report incorrect bounding boxes
+        # If height is 0 but width is reasonable, use a default height
+        if text_height == 0 and text_width > 0:
+            print(f"⚠️ RASTERIZE: Zero height detected, using default height")
+            text_height = image_size * 0.8  # Use 80% of image height
+            bbox = (bbox[0], bbox[1], bbox[2], bbox[1] + text_height)
+
         # Center the character in the image
         x = (image_size - text_width) // 2
         y = (image_size - text_height) // 2 - bbox[1]
