@@ -70,8 +70,8 @@ def rasterize_unicode_character(character, font_size=200, image_size=256):
     """
     print(f"🔍 RASTERIZE DEBUG: Rasterizing character '{character}'")
 
-    # Create a transparent image
-    image = Image.new('RGBA', (image_size, image_size), (255, 255, 255, 0))
+    # Create a white background image (not transparent)
+    image = Image.new('RGB', (image_size, image_size), (255, 255, 255))
     draw = ImageDraw.Draw(image)
 
     # Try different font paths for Unicode support
@@ -109,13 +109,13 @@ def rasterize_unicode_character(character, font_size=200, image_size=256):
         y = (image_size - text_height) // 2 - bbox[1]
 
         # Draw the character
-        draw.text((x, y), character, fill=(0, 0, 0, 255), font=font)
+        draw.text((x, y), character, fill=(0, 0, 0), font=font)
         print(f"✅ RASTERIZE: Successfully rasterized '{character}' - size: {text_width}x{text_height}")
 
     except Exception as e:
         print(f"❌ RASTERIZE: Failed to rasterize '{character}': {e}")
         # Create a fallback image with the character code
-        draw.text((10, 10), f"U+{ord(character[0]):04X}", fill=(0, 0, 0, 255))
+        draw.text((10, 10), f"U+{ord(character[0]):04X}", fill=(0, 0, 0))
 
     # Convert to bytes
     buffer = io.BytesIO()
