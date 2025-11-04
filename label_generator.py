@@ -71,15 +71,25 @@ def rasterize_unicode_character(character, font_size=200, image_size=256):
     """
     print(f"🔍 RASTERIZE DEBUG: Rasterizing character '{character}'")
 
-    # First try OpenMoji SVG method
+    # First try OpenMoji PNG method
+    try:
+        from openmoji_png_rasterizer import rasterize_unicode_with_openmoji_png
+        openmoji_png_result = rasterize_unicode_with_openmoji_png(character, image_size)
+        if openmoji_png_result:
+            print(f"✅ RASTERIZE: Using OpenMoji PNG for '{character}'")
+            return openmoji_png_result
+    except Exception as e:
+        print(f"⚠️ RASTERIZE: OpenMoji PNG method failed, falling back to SVG: {e}")
+
+    # Fall back to OpenMoji SVG method
     try:
         from openmoji_rasterizer import rasterize_unicode_with_openmoji
-        openmoji_result = rasterize_unicode_with_openmoji(character, image_size)
-        if openmoji_result:
+        openmoji_svg_result = rasterize_unicode_with_openmoji(character, image_size)
+        if openmoji_svg_result:
             print(f"✅ RASTERIZE: Using OpenMoji SVG for '{character}'")
-            return openmoji_result
+            return openmoji_svg_result
     except Exception as e:
-        print(f"⚠️ RASTERIZE: OpenMoji method failed, falling back to font: {e}")
+        print(f"⚠️ RASTERIZE: OpenMoji SVG method failed, falling back to font: {e}")
 
     # Fall back to font rasterization
     print(f"⚠️ RASTERIZE: Falling back to font rasterization for '{character}'")
