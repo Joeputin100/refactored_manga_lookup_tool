@@ -66,9 +66,23 @@ else:
 def rasterize_unicode_character(character, font_size=200, image_size=256):
     """
     Rasterize a Unicode character as a PNG image to ensure consistent rendering.
+    Uses OpenMoji SVG files as primary method, with font rasterization as fallback.
     Returns an ImageReader object for use with ReportLab.
     """
     print(f"🔍 RASTERIZE DEBUG: Rasterizing character '{character}'")
+
+    # First try OpenMoji SVG method
+    try:
+        from openmoji_rasterizer import rasterize_unicode_with_openmoji
+        openmoji_result = rasterize_unicode_with_openmoji(character, image_size)
+        if openmoji_result:
+            print(f"✅ RASTERIZE: Using OpenMoji SVG for '{character}'")
+            return openmoji_result
+    except Exception as e:
+        print(f"⚠️ RASTERIZE: OpenMoji method failed, falling back to font: {e}")
+
+    # Fall back to font rasterization
+    print(f"⚠️ RASTERIZE: Falling back to font rasterization for '{character}'")
 
     # Create a white background image (not transparent)
     image = Image.new('RGB', (image_size, image_size), (255, 255, 255))
