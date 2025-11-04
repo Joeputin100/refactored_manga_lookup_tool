@@ -74,9 +74,12 @@ def rasterize_unicode_character(character, font_size=200, image_size=256):
     image = Image.new('RGB', (image_size, image_size), (255, 255, 255))
     draw = ImageDraw.Draw(image)
 
-    # Try different font paths for Unicode support
+    # Try different font paths for Unicode support - prioritize emoji fonts
     font_paths = [
-        os.path.join(current_dir, "fonts/DejaVuSans.ttf"),
+        os.path.join(current_dir, "fonts/NotoColorEmoji-Regular.ttf"),  # Primary emoji font (local)
+        "/system/fonts/NotoColorEmoji.ttf",  # System emoji font
+        "/system/fonts/NotoColorEmojiFlags.ttf",  # Secondary emoji font
+        os.path.join(current_dir, "fonts/DejaVuSans.ttf"),  # Fallback Unicode font
         os.path.join(current_dir, "fonts/LiberationSans-Regular.ttf"),
         "/system/fonts/DroidSans.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
