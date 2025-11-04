@@ -104,18 +104,72 @@ def rasterize_unicode_character(character, font_size=200, image_size=256):
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
 
+        print(f"🔍 RASTERIZE: Character bbox: {bbox}")
+        print(f"🔍 RASTERIZE: Calculated size: {text_width}x{text_height}")
+
         # Center the character in the image
         x = (image_size - text_width) // 2
         y = (image_size - text_height) // 2 - bbox[1]
+
+        print(f"🔍 RASTERIZE: Drawing at position: x={x}, y={y}")
 
         # Draw the character
         draw.text((x, y), character, fill=(0, 0, 0), font=font)
         print(f"✅ RASTERIZE: Successfully rasterized '{character}' - size: {text_width}x{text_height}")
 
+        # Additional check: test if character renders at all
+        test_bbox = draw.textbbox((0, 0), "A", font=font)
+        print(f"🔍 RASTERIZE: Test character 'A' bbox: {test_bbox}")
+
     except Exception as e:
         print(f"❌ RASTERIZE: Failed to rasterize '{character}': {e}")
         # Create a fallback image with the character code
         draw.text((10, 10), f"U+{ord(character[0]):04X}", fill=(0, 0, 0))
+        print(f"⚠️ RASTERIZE: Using fallback character code")
+
+    # Convert to bytes
+    buffer = io.BytesIO()
+    image.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    return ImageReader(buffer)
+
+
+def create_fallback_symbol(character, image_size=256):
+    """
+    Create a fallback geometric symbol when Unicode character can't be rendered.
+    Returns an ImageReader object.
+    """
+    print(f"🔍 FALLBACK: Creating geometric symbol for '{character}'")
+
+    # Create a white background image
+    image = Image.new('RGB', (image_size, image_size), (255, 255, 255))
+    draw = ImageDraw.Draw(image)
+
+    # Create a simple geometric shape based on character
+    center = image_size // 2
+    radius = image_size // 3
+
+    # Draw a circle
+    draw.ellipse([center - radius, center - radius, center + radius, center + radius],
+                 outline=(0, 0, 0), width=5)
+
+    # Add character code inside
+    from PIL import ImageFont
+    try:
+        # Try to use a small font for the character code
+        font = ImageFont.load_default()
+        code_text = f"U+{ord(character[0]):04X}"
+        bbox = draw.textbbox((0, 0), code_text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        x = center - text_width // 2
+        y = center - text_height // 2
+        draw.text((x, y), code_text, fill=(0, 0, 0), font=font)
+    except:
+        pass
+
+    print(f"✅ FALLBACK: Created geometric symbol for '{character}'")
 
     # Convert to bytes
     buffer = io.BytesIO()
@@ -475,8 +529,13 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
             # Unicode character - use rasterized image
             print(f"✅ LABEL_TYPE_3: Unicode character '{library_id}' detected - using rasterized image")
 
-            # Rasterize the Unicode character
-            character_image = rasterize_unicode_character(library_id)
+            # Try to rasterize the Unicode character
+            try:
+                character_image = rasterize_unicode_character(library_id)
+                print(f"✅ LABEL_TYPE_3: Rasterization successful")
+            except Exception as e:
+                print(f"❌ LABEL_TYPE_3: Rasterization failed, using fallback symbol: {e}")
+                character_image = create_fallback_symbol(library_id)
 
             # Calculate image size and position
             image_size = LABEL_HEIGHT * 0.8  # 80% of label height
