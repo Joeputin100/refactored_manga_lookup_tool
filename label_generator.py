@@ -435,10 +435,22 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
         print(f"🔍 LABEL_TYPE_3 DEBUG: UNICODE_FONT_NAME='{UNICODE_FONT_NAME}'")
 
         # Check if character is ASCII or Unicode
+        print(f"🔍 LABEL_TYPE_3: Character analysis - library_id='{library_id}', length={len(library_id)}")
+        print(f"🔍 LABEL_TYPE_3: Character bytes: {library_id.encode('utf-8')}")
+
+        # More robust Unicode detection
+        is_ascii = True
         try:
             library_id.encode('ascii')
-            # ASCII character - use text rendering
-            print(f"✅ LABEL_TYPE_3: ASCII character '{library_id}' - using text rendering")
+            # Additional check: ensure it's a single ASCII character
+            if len(library_id) == 1 and ord(library_id) <= 127:
+                print(f"✅ LABEL_TYPE_3: Pure ASCII character '{library_id}' - using text rendering")
+            else:
+                is_ascii = False
+        except UnicodeEncodeError:
+            is_ascii = False
+
+        if is_ascii:
 
             b_font_size = 100
             while (
@@ -459,7 +471,7 @@ def create_label(c, x, y, book_data, label_type, library_name, library_id="B"):
             c.drawString(b_x, b_y, library_id)
             print(f"✅ LABEL_TYPE_3: Successfully drew ASCII library_id='{library_id}' on label")
 
-        except UnicodeEncodeError:
+        else:
             # Unicode character - use rasterized image
             print(f"✅ LABEL_TYPE_3: Unicode character '{library_id}' detected - using rasterized image")
 
